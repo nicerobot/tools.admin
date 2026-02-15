@@ -1,0 +1,6 @@
+# ruff only supports TOML config; no YAML/JSON alternative exists.
+target-version = "py312"
+src = ["src", "tests"]
+
+[lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]

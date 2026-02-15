@@ -1,0 +1,33 @@
+# pyproject.toml is mandated by PEP 517/518/621 for Python packaging.
+# No YAML or JSON alternative exists. Tool configs live in their own
+# native files (ruff.toml, mypy.ini, pytest.ini) where possible.
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "admin-tools"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "httpx>=0.27,<1",
+  "pydantic>=2.6,<3",
+  "pyyaml>=6.0,<7",
+]
+
+[project.scripts]
+admin-tools = "admin_tools.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/admin_tools"]
+
+[dependency-groups]
+dev = [
+  "ruff>=0.8",
+  "mypy>=1.13",
+  "types-pyyaml>=6.0",
+  "jsonschema>=4.21",
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+]

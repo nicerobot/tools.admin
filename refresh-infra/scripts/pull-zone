@@ -1,0 +1,212 @@
+#!/bin/bash
+# pull-zone — Pull live Cloudflare zone config for the current infra repo
+#
+# Reads zone and zone_id from cloudflare/zone.yaml, then pulls DNS records,
+# custom rulesets, and email routing configuration from the Cloudflare API.
+# Writes zone.yaml, rules.yaml, and email.yaml into cloudflare/.
+#
+# Usage:
+#   pull-zone
+#
+# Requires: curl, jq, yq, CF_READ_ONLY_API_TOKEN env var
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+exec 3>&1 4>&2
+
+# Constants
+CF_API='https://api.cloudflare.com/client/v4'
+CF_DIR='cloudflare'
+ZONE_YAML="${CF_DIR}/zone.yaml"
+
+# Skip repos with no infrastructure
+[[ -f "${ZONE_YAML}" ]] || {
+  printf >&3 '▸ %s not found — no infrastructure, skipping\n' "${ZONE_YAML}"
+  exit 0
+}
+
+ZONE="$(yq -r '.zone' "${ZONE_YAML}")"
+ZONE_ID="$(yq -r '.zone_id' "${ZONE_YAML}")"
+
+[[ "${ZONE_ID}" = 'ZONE_ID' ]] && {
+  printf >&3 '▸ zone_id is a placeholder — skipping\n'
+  exit 0
+}
+
+# Validate
+[[ -z "${CF_READ_ONLY_API_TOKEN:-}" ]] && {
+  printf >&4 '✗ CF_READ_ONLY_API_TOKEN not set\n'
+  exit 1
+}
+
+printf >&3 '▸ Pulling config for %s (%s)\n' "${ZONE}" "${ZONE_ID}"
+
+# --- Functions ---
+
+cf-api() {
+  local ENDPOINT="${1}"
+  curl -sf \
+    -H "Authorization: Bearer ${CF_READ_ONLY_API_TOKEN}" \
+    -H 'Content-Type: application/json' \
+    "${CF_API}${ENDPOINT}" \
+    </dev/null 2>/dev/null \
+  || echo '{"success":false,"result":[]}'
+}
+
+pull-dns() {
+  local RESPONSE
+  RESPONSE="$(cf-api "/zones/${ZONE_ID}/dns_records?per_page=500")"
+
+  echo "${RESPONSE}" \
+    | jq --arg zone "${ZONE}" --arg zone_id "${ZONE_ID}" '{
+        zone: $zone,
+        zone_id: $zone_id,
+        records: [
+          .result
+          | sort_by(
+              ({"A":0,"AAAA":1,"CNAME":2,"MX":3,"TXT":4,"SRV":5,"NS":6,"CAA":7}[.type] // 99),
+              .name,
+              (.priority // 0),
+              .content
+            )[]
+          | {
+              type,
+              name: (if .name == $zone then $zone
+                     elif (.name | endswith("." + $zone)) then .name[:-($zone | length + 1)]
+                     else .name end),
+              content,
+              proxied: (.proxied // false),
+              ttl
+            }
+          + (if .priority != null then {priority: .priority} else {} end)
+          + (if .comment != null and .comment != "" then {comment: .comment} else {} end)
+        ]
+      }' \
+    | yq -P '.' > "${CF_DIR}/zone.yaml"
+
+  local RECORD_COUNT
+  RECORD_COUNT="$(jq '.result | length' <<< "${RESPONSE}")"
+  printf >&3 '  zone.yaml: %s records\n' "${RECORD_COUNT}"
+}
+
+pull-rules() {
+  local RULESETS_RESPONSE
+  RULESETS_RESPONSE="$(cf-api "/zones/${ZONE_ID}/rulesets")"
+
+  local CUSTOM_IDS
+  CUSTOM_IDS="$(echo "${RULESETS_RESPONSE}" \
+    | jq -r '.result[] | select(.kind == "zone") | .id')"
+
+  [[ -z "${CUSTOM_IDS}" ]] && {
+    [[ -f "${CF_DIR}/rules.yaml" ]] && rm -f "${CF_DIR}/rules.yaml"
+    printf >&3 '  rules.yaml: none\n'
+    return 0
+  }
+
+  local ALL_DETAILS='[]'
+  while IFS= read -r RULESET_ID; do
+    [[ -z "${RULESET_ID}" ]] && continue
+    local DETAIL
+    DETAIL="$(cf-api "/zones/${ZONE_ID}/rulesets/${RULESET_ID}")"
+    ALL_DETAILS="$(echo "${ALL_DETAILS}" \
+      | jq --argjson detail "${DETAIL}" '. + [$detail.result]')"
+  done <<< "${CUSTOM_IDS}"
+
+  echo "${ALL_DETAILS}" \
+    | jq --arg zone "${ZONE}" --arg zone_id "${ZONE_ID}" '{
+        zone: $zone,
+        zone_id: $zone_id,
+        rulesets: [
+          .[]
+          | select(. != null)
+          | {
+              id,
+              phase,
+              name,
+              description: (.description // ""),
+              rules: [
+                (.rules // [])[]
+                | {
+                    id,
+                    description: (.description // ""),
+                    action,
+                    enabled,
+                    expression,
+                    action_parameters: (.action_parameters // {})
+                  }
+              ]
+            }
+        ]
+      }' \
+    | yq -P '.' > "${CF_DIR}/rules.yaml"
+
+  local RULE_COUNT
+  RULE_COUNT="$(jq '[.[].rules // [] | length] | add // 0' <<< "${ALL_DETAILS}")"
+  printf >&3 '  rules.yaml: %s rules\n' "${RULE_COUNT}"
+}
+
+pull-email() {
+  local SETTINGS_RESPONSE
+  SETTINGS_RESPONSE="$(cf-api "/zones/${ZONE_ID}/email/routing")"
+
+  local RULES_RESPONSE
+  RULES_RESPONSE="$(cf-api "/zones/${ZONE_ID}/email/routing/rules")"
+
+  local ENABLED
+  ENABLED="$(echo "${SETTINGS_RESPONSE}" | jq -r '.result.enabled // false')"
+
+  local RULE_COUNT
+  RULE_COUNT="$(echo "${RULES_RESPONSE}" | jq '.result | length // 0')"
+
+  [[ "${ENABLED}" = 'false' ]] && ((RULE_COUNT == 0)) && {
+    [[ -f "${CF_DIR}/email.yaml" ]] && rm -f "${CF_DIR}/email.yaml"
+    printf >&3 '  email.yaml: none\n'
+    return 0
+  }
+
+  jq -n \
+    --arg zone "${ZONE}" \
+    --arg zone_id "${ZONE_ID}" \
+    --argjson settings "${SETTINGS_RESPONSE}" \
+    --argjson rules "${RULES_RESPONSE}" \
+    '{
+      zone: $zone,
+      zone_id: $zone_id,
+      email_routing: {
+        enabled: ($settings.result.enabled // false),
+        status: ($settings.result.status // "unknown"),
+        subdomains: [
+          ($settings.result.subdomains // [])[]
+          | {
+              name,
+              enabled,
+              status
+            }
+        ],
+        rules: [
+          ($rules.result // [])[]
+          | {
+              enabled,
+              name: (.name // ""),
+              matchers: .matchers,
+              actions: .actions
+            }
+        ]
+      }
+    }' \
+    | yq -P '.' > "${CF_DIR}/email.yaml"
+
+  printf >&3 '  email.yaml: %s rules\n' "${RULE_COUNT}"
+}
+
+# --- Main ---
+
+pull-dns
+pull-rules
+pull-email
+
+printf >&3 '  ✓ done\n'
+
+exit 0
