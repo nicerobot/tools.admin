@@ -28,8 +28,9 @@ tool-versions:
 # Refresh every tool in the `tool` block to its latest release.
 .PHONY: upgrade
 upgrade:
-	go get -tool $$(go list -m -f '{{if .Tool}}{{.Path}}{{end}}' all 2>/dev/null) 2>/dev/null || true
-	go get tool@latest 2>/dev/null || true
+	@for t in $$(awk '/^tool \(/{f=1;next} /^\)/{f=0} f{print $$1}' go.mod); do \
+	  echo "==> $$t@latest"; go get -tool "$$t@latest"; \
+	done
 	go mod tidy
 
 .PHONY: demo

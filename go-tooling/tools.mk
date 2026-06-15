@@ -17,6 +17,9 @@ GO_TOOLING_DIR ?= $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 GO              ?= go
 GO_PKGS         ?= ./...
+# Path-walking tools (formatters, gocyclo, gocognit, dupl, misspell) take
+# filesystem paths, not Go package patterns like ./..., so they use GO_DIRS.
+GO_DIRS         ?= .
 GO_TEST_FLAGS   ?= -race -count=1
 COVER_PROFILE   ?= coverage.out
 
@@ -55,16 +58,18 @@ tool-versions: ## Print the version of every bundled tool
 
 .PHONY: fmt
 fmt: ## Format code (gofumpt, goimports, gci)
-	gofumpt -extra -w .
-	goimports -w .
-	gci write --skip-generated -s standard -s default -s localmodule .
+	gofumpt -extra -w $(GO_DIRS)
+	goimports -w $(GO_DIRS)
+	gci write --skip-generated -s standard -s default -s localmodule $(GO_DIRS)
 
 .PHONY: fmt-check
 fmt-check: ## Fail if any file is not formatted
-	@out="$$(gofumpt -extra -l .)"; \
+	@out="$$(gofumpt -extra -l $(GO_DIRS))"; \
 	if [ -n "$$out" ]; then echo "not gofumpt-formatted:"; echo "$$out"; exit 1; fi
-	@out="$$(goimports -l .)"; \
+	@out="$$(goimports -l $(GO_DIRS))"; \
 	if [ -n "$$out" ]; then echo "imports not formatted:"; echo "$$out"; exit 1; fi
+	@out="$$(gci diff --skip-generated -s standard -s default -s localmodule $(GO_DIRS))"; \
+	if [ -n "$$out" ]; then echo "imports not gci-ordered:"; echo "$$out"; exit 1; fi
 
 # ---------------------------------------------------------------------------
 # Modules
@@ -76,11 +81,18 @@ tidy: ## Run go mod tidy
 
 .PHONY: tidy-check
 tidy-check: ## Fail if go.mod/go.sum are not tidy
-	@cp go.mod go.mod.bak; cp go.sum go.sum.bak 2>/dev/null || true; \
+	@cp go.mod go.mod.bak; \
+	had_sum=0; if [ -f go.sum ]; then had_sum=1; cp go.sum go.sum.bak; fi; \
 	$(GO) mod tidy; \
-	if ! diff -q go.mod go.mod.bak >/dev/null 2>&1 || { [ -f go.sum.bak ] && ! diff -q go.sum go.sum.bak >/dev/null 2>&1; }; then \
-	  echo "go.mod/go.sum are not tidy — run 'make tidy'"; rc=1; else rc=0; fi; \
-	mv go.mod.bak go.mod; [ -f go.sum.bak ] && mv go.sum.bak go.sum; exit $$rc
+	rc=0; \
+	diff -q go.mod go.mod.bak >/dev/null 2>&1 || rc=1; \
+	if [ "$$had_sum" = 1 ]; then \
+	  diff -q go.sum go.sum.bak >/dev/null 2>&1 || rc=1; \
+	elif [ -f go.sum ]; then rc=1; fi; \
+	[ "$$rc" = 1 ] && echo "go.mod/go.sum are not tidy — run 'make tidy'"; \
+	mv go.mod.bak go.mod; \
+	if [ "$$had_sum" = 1 ]; then mv go.sum.bak go.sum; else rm -f go.sum; fi; \
+	exit $$rc
 
 # ---------------------------------------------------------------------------
 # Linting & static analysis
@@ -116,7 +128,7 @@ ineffassign: ## ineffassign (ineffectual assignments)
 
 .PHONY: misspell
 misspell: ## misspell (common misspellings)
-	misspell -error .
+	misspell -error $(GO_DIRS)
 
 .PHONY: deadcode
 deadcode: ## deadcode (unreachable functions)
@@ -124,18 +136,18 @@ deadcode: ## deadcode (unreachable functions)
 
 .PHONY: cyclo
 cyclo: ## cyclomatic complexity (gocyclo)
-	gocyclo -over $(GOCYCLO_OVER) .
+	gocyclo -over $(GOCYCLO_OVER) $(GO_DIRS)
 
 .PHONY: cognit
 cognit: ## cognitive complexity (gocognit)
-	gocognit -over $(GOCOGNIT_OVER) .
+	gocognit -over $(GOCOGNIT_OVER) $(GO_DIRS)
 
 .PHONY: complexity
 complexity: cyclo cognit ## cyclomatic + cognitive complexity
 
 .PHONY: dupl
 dupl: ## duplicate code detection
-	dupl -threshold $(DUPL_THRESHOLD) .
+	dupl -threshold $(DUPL_THRESHOLD) $(GO_DIRS)
 
 .PHONY: nilaway
 nilaway: ## nil-panic analysis (Uber NilAway)
