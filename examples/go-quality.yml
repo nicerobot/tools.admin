@@ -1,0 +1,18 @@
+# Drop-in Go quality workflow for any Go repository.
+# Copy to .github/workflows/go-quality.yml — it pulls the prebuilt toolchain
+# image, so no Go tooling needs to live in your repository.
+name: Go quality
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: nicerobot/admin-tools/go-tooling@v2
+        with:
+          target: check # fmt-check + lint + analyze + security + test

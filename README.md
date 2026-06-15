@@ -17,6 +17,20 @@ Keep all content generic and reusable.
 | `create-pr` | Commit snapshot changes and open a PR |
 | `cleanup-runs` | Delete old workflow runs across repos |
 
+## Go tooling image
+
+[`go-tooling/`](go-tooling/) builds a separate image that bundles a full suite
+of Go quality tools (formatters, linters, static & complexity analysis,
+security and vulnerability scanners) plus an includable Makefile, so other Go
+repos get the whole toolchain via CI without embedding any of it. See
+[`go-tooling/README.md`](go-tooling/README.md).
+
+```yaml
+- uses: nicerobot/admin-tools/go-tooling@v2
+  with:
+    target: check
+```
+
 ## Usage
 
 ```yaml

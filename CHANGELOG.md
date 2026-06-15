@@ -5,7 +5,12 @@ All notable changes to this project are documented here.
 ## [Unreleased]
 
 ### Added
-- [Features in progress]
+- **Go Tooling Image** - Prebuilt container bundling a full Go quality toolchain so other repos consume it via CI without embedding any tooling
+  - Entry point: [`go-tooling/`](go-tooling/) — `Dockerfile`, `go.mod` (`tool` block), `tools.mk`, `action.yml`
+  - 21 tools declared in a single `go.mod` `tool` block and compiled via `go install tool` (Go 1.24+ tool dependencies): golangci-lint v2, gofumpt, goimports, gci, golines, staticcheck, govulncheck, gosec, gocyclo, gocognit, errcheck, ineffassign, misspell, revive, deadcode, nilaway, gotestsum, go-junit-report, gocov, gocov-xml, dupl
+  - Includable `tools.mk` exposes `fmt`, `lint`, `analyze`, `complexity`, `security`, `vulncheck`, `test`, and an aggregate `check`/`ci` gate; consumers `include /opt/go-tooling/tools.mk` or run the `nicerobot/admin-tools/go-tooling@v2` action
+  - Published by `release.yml` as `ghcr.io/nicerobot/admin-tools/go-tooling:<tag>` and `:latest`; CI builds the image and smoke-tests the gate against a sample module
+  - Decision: tool suite carried in this shared repo's image rather than copied into each consuming repo, so tool versions are upgraded in one place
 
 ---
 

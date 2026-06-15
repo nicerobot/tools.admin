@@ -37,3 +37,29 @@ jobs:
           python-version: "3.12"
       - run: pip install -e . && pip install pytest pytest-asyncio jsonschema
       - run: pytest -v
+
+  go-tooling:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # go.mod / go.sum must stay in sync and resolve.
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go-tooling/go.mod
+      - name: Verify tool module is tidy
+        working-directory: go-tooling
+        run: |
+          go mod verify
+          go mod tidy -diff
+      # Build the image and smoke-test the bundled toolchain end to end.
+      - name: Build image
+        run: docker build -t go-tooling:ci ./go-tooling
+      - name: Validate shipped lint config
+        run: docker run --rm go-tooling:ci golangci-lint config verify -c /opt/go-tooling/.golangci.yml
+      - name: Run the quality gate against a sample module
+        run: |
+          tmp="$(mktemp -d)"
+          printf 'package main\n\nimport "fmt"\n\nfunc main() { fmt.Println("ok") }\n' > "$tmp/main.go"
+          ( cd "$tmp" && go mod init demo.example >/dev/null )
+          docker run --rm -v "$tmp:/src" -w /src go-tooling:ci \
+            make -f /opt/go-tooling/tools.mk fmt-check lint analyze test
