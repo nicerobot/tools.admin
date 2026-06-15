@@ -1,0 +1,23 @@
+# Companion workflow for the example Makefile in this directory.
+# Copy to .github/workflows/go-quality.yml in your Go repo (alongside the
+# Makefile). The job runs inside the pinned toolchain image, so `make check`
+# resolves through your Makefile's `include /opt/go-tooling/tools.mk`.
+#
+# Use this when you want a project Makefile. If you'd rather not have one,
+# use ../go-quality.yml instead (it calls the action directly).
+name: Go quality
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    container: ghcr.io/nicerobot/admin-tools/go-tooling:v2
+    steps:
+      - uses: actions/checkout@v4
+      # Resolves to the bundled tools.mk `check` gate via the repo's Makefile:
+      # fmt-check + lint + analyze + security + test.
+      - run: make check

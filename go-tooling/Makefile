@@ -3,7 +3,7 @@
 
 IMAGE       ?= ghcr.io/nicerobot/admin-tools/go-tooling
 TAG         ?= dev
-GO_VERSION  ?= 1.25
+GO_VERSION  ?= 1.26
 
 .PHONY: help
 help:

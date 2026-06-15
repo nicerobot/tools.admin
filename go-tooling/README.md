@@ -105,6 +105,39 @@ docker run --rm -v "$PWD:/src" -w /src \
   make -f /opt/go-tooling/tools.mk check
 ```
 
+A complete, copy-paste template (project `Makefile` + workflow) lives in
+[`../examples/go-repo/`](../examples/go-repo/).
+
+## Local development — same tool versions as CI
+
+The **image tag is the single source of truth for tool versions.** Because the
+toolchain is baked into the image, a developer machine uses the exact versions
+CI uses simply by running the same image — nothing is installed on the host.
+
+The [`examples/go-repo/Makefile`](../examples/go-repo/Makefile) makes this
+seamless. It detects whether it is running inside the image:
+
+- **Inside the image** (CI container, or `docker run`) it `include`s
+  `/opt/go-tooling/tools.mk` and calls the targets directly.
+- **On a laptop** (no toolchain installed) every target is transparently
+  re-run inside the pinned image:
+
+  ```makefile
+  GO_TOOLING_IMAGE ?= ghcr.io/nicerobot/admin-tools/go-tooling:v2
+  %:
+  	docker run --rm -v "$(CURDIR):/src" -w /src $(GO_TOOLING_IMAGE) make $@
+  ```
+
+So a developer just runs `make lint` / `make check` and gets identical results
+to CI. `make shell` drops into the image; `make pull` updates it.
+
+For byte-for-byte reproducibility, pin a **digest** instead of a tag and bump it
+deliberately (e.g. via Dependabot/Renovate watching the image):
+
+```makefile
+GO_TOOLING_IMAGE = ghcr.io/nicerobot/admin-tools/go-tooling@sha256:<digest>
+```
+
 ## Configuration
 
 The image ships sane defaults at `/opt/go-tooling/`:

@@ -7,9 +7,9 @@
 # itself to build/test/vet) with those binaries on $PATH plus the includable
 # tools.mk and default configs under /opt/go-tooling.
 
-# Latest Go 1.25.x official image. The bundled tools require Go >= 1.25.
-# Override at build time: docker build --build-arg GO_VERSION=1.25 ...
-ARG GO_VERSION=1.25
+# Latest official Go image. The bundled tools require Go >= 1.25.
+# Override at build time: docker build --build-arg GO_VERSION=1.26 ...
+ARG GO_VERSION=1.26
 
 FROM golang:${GO_VERSION} AS tools
 
