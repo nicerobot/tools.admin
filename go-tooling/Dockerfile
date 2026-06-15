@@ -44,7 +44,7 @@ COPY --from=tools /tools/bin/ /go/bin/
 
 # Includable makefile, default linter configs, and the action entrypoint.
 ENV GO_TOOLING_DIR=/opt/go-tooling
-COPY tools.mk .golangci.yml revive.toml entrypoint.sh ${GO_TOOLING_DIR}/
+COPY tools.mk .golangci.yml entrypoint.sh ${GO_TOOLING_DIR}/
 RUN chmod +x ${GO_TOOLING_DIR}/entrypoint.sh
 
 # Consuming CI checks out the repo here (Docker GitHub Actions override this

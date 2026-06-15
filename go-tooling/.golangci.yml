@@ -45,6 +45,41 @@ linters:
     gosec:
       excludes:
         - G115 # integer overflow conversion noise; rely on staticcheck/manual review
+    revive:
+      # revive's standalone binary only reads TOML; configuring it here (YAML)
+      # via golangci-lint avoids a separate TOML config entirely.
+      severity: warning
+      confidence: 0.8
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: empty-block
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: exported
+        - name: if-return
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: superfluous-else
+        - name: time-naming
+        - name: unexported-return
+        - name: unhandled-error
+          arguments:
+            - fmt.Printf
+            - fmt.Println
+            - fmt.Print
+        - name: unreachable-code
+        - name: unused-parameter
+        - name: var-declaration
+        - name: var-naming
   exclusions:
     generated: lax
     presets:

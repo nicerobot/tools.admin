@@ -28,9 +28,10 @@ GOCYCLO_OVER    ?= 15
 GOCOGNIT_OVER   ?= 20
 DUPL_THRESHOLD  ?= 100
 
-# Config files: prefer a repo-local copy, fall back to the image defaults.
+# golangci-lint config: prefer a repo-local copy, fall back to the image default.
+# (revive runs as part of golangci-lint and is configured in this YAML file —
+# there is no separate revive config.)
 GOLANGCI_CONFIG ?= $(firstword $(wildcard .golangci.yml .golangci.yaml .golangci.toml) $(GO_TOOLING_DIR)/.golangci.yml)
-REVIVE_CONFIG   ?= $(firstword $(wildcard revive.toml .revive.toml) $(GO_TOOLING_DIR)/revive.toml)
 
 .DEFAULT_GOAL := help
 
@@ -113,10 +114,6 @@ lint-fix: ## golangci-lint with --fix
 .PHONY: staticcheck
 staticcheck: ## staticcheck
 	staticcheck $(GO_PKGS)
-
-.PHONY: revive
-revive: ## revive style linter
-	revive -config $(REVIVE_CONFIG) -set_exit_status $(GO_PKGS)
 
 .PHONY: errcheck
 errcheck: ## errcheck (unchecked errors)

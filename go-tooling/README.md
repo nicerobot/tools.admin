@@ -41,7 +41,7 @@ linters; the standalone binaries are there for targeted, scriptable use.
 | `tidy` / `tidy-check` | `go mod tidy` / verify tidy |
 | `vet` | `go vet` |
 | `lint` / `lint-fix` | `golangci-lint run` |
-| `staticcheck`, `revive`, `errcheck`, `ineffassign`, `misspell` | individual linters |
+| `staticcheck`, `errcheck`, `ineffassign`, `misspell` | individual linters |
 | `complexity` (`cyclo` + `cognit`), `dupl`, `deadcode`, `nilaway` | analysis |
 | `vulncheck`, `gosec`, `security` | vulnerability & security scans |
 | `test`, `cover`, `cover-html` | tests & coverage |
@@ -114,18 +114,19 @@ The **image tag is the single source of truth for tool versions.** Because the
 toolchain is baked into the image, a developer machine uses the exact versions
 CI uses simply by running the same image — nothing is installed on the host.
 
-The [`examples/go-repo/Makefile`](../examples/go-repo/Makefile) makes this
-seamless. It detects whether it is running inside the image:
+[`examples/go-repo/`](../examples/go-repo/) splits this into two makefiles:
 
-- **Inside the image** (CI container, or `docker run`) it `include`s
-  `/opt/go-tooling/tools.mk` and calls the targets directly.
-- **On a laptop** (no toolchain installed) every target is transparently
-  re-run inside the pinned image:
+- **[`ci.mk`](../examples/go-repo/ci.mk)** runs *inside* the image. It
+  `include`s `/opt/go-tooling/tools.mk` and adds your project targets. CI calls
+  it directly: `make -f ci.mk check`.
+- **[`Makefile`](../examples/go-repo/Makefile)** is for laptops with no
+  toolchain installed. Every target is transparently re-run inside the pinned
+  image against `ci.mk`:
 
   ```makefile
   GO_TOOLING_IMAGE ?= ghcr.io/nicerobot/admin-tools/go-tooling:v2
   %:
-  	docker run --rm -v "$(CURDIR):/src" -w /src $(GO_TOOLING_IMAGE) make $@
+  	docker run --rm -v "$(CURDIR):/src" -w /src $(GO_TOOLING_IMAGE) make -f ci.mk $@
   ```
 
 So a developer just runs `make lint` / `make check` and gets identical results
@@ -140,15 +141,14 @@ GO_TOOLING_IMAGE = ghcr.io/nicerobot/admin-tools/go-tooling@sha256:<digest>
 
 ## Configuration
 
-The image ships sane defaults at `/opt/go-tooling/`:
-
-- `.golangci.yml` — golangci-lint **v2** config (curated linter set)
-- `revive.toml` — revive rules
+The image ships a single default config at `/opt/go-tooling/.golangci.yml` —
+the golangci-lint **v2** config (curated linter set). `revive` runs as one of
+golangci-lint's linters and is configured **in that YAML file** (the standalone
+`revive` binary only reads TOML, which this avoids).
 
 `tools.mk` prefers a **repo-local** config when present (`.golangci.yml`,
-`.golangci.yaml`, `.golangci.toml`, or `revive.toml` in your repo root) and
-falls back to the shipped defaults otherwise. So consumers can override without
-touching this image.
+`.golangci.yaml`, or `.golangci.toml` in your repo root) and falls back to the
+shipped default otherwise. So consumers can override without touching this image.
 
 ## Maintaining this image
 
