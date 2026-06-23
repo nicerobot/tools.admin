@@ -1,0 +1,25 @@
+# Example: delete this repo's old workflow runs every week.
+#
+# Copy this file into the target repo as
+# .github/workflows/cleanup-runs.yml. It calls the reusable workflow in
+# tools.admin, which cleans the calling repo (auto-detected) using its
+# GITHUB_TOKEN. Defaults: runs older than 30 days, keeping 5 per workflow.
+
+name: Cleanup runs
+
+on:
+  schedule:
+    - cron: "0 10 * * 0" # Sundays at 10:00 UTC
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup:
+    uses: nicerobot/tools.admin/.github/workflows/cleanup-runs.yml@main
+    # Override defaults if desired:
+    # with:
+    #   days: 30
+    #   keep: 5
+    #   dry-run: false

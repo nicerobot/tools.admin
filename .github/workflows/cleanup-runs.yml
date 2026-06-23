@@ -1,0 +1,57 @@
+name: Cleanup runs
+
+# Reusable workflow that deletes a repository's old workflow runs.
+# Call it from any repo (see examples/cleanup-runs-weekly.yml); it cleans
+# the calling repo, auto-detected from GITHUB_REPOSITORY by the action.
+
+on:
+  workflow_call:
+    inputs:
+      days:
+        description: "Delete runs older than N days"
+        type: number
+        default: 30
+      keep:
+        description: "Keep at least N runs per workflow"
+        type: number
+        default: 5
+      dry-run:
+        description: "Print what would be deleted without deleting"
+        type: boolean
+        default: false
+    secrets:
+      token:
+        description: "Token with actions:write (defaults to the caller GITHUB_TOKEN)"
+        required: false
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Delete runs older than N days"
+        type: number
+        default: 30
+      keep:
+        description: "Keep at least N runs per workflow"
+        type: number
+        default: 5
+      dry-run:
+        description: "Print what would be deleted without deleting"
+        type: boolean
+        default: true
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      # Full name (not ./) is required: when this workflow is called from
+      # another repo the workspace is the caller's, so a local ref would miss
+      # the action. The cleanup target stays the caller, via GITHUB_REPOSITORY.
+      - uses: nicerobot/tools.admin@main
+        with:
+          command: cleanup-runs
+          cleanup-days: ${{ inputs.days }}
+          cleanup-keep: ${{ inputs.keep }}
+          cleanup-dry-run: ${{ inputs.dry-run }}
+        env:
+          GH_TOKEN: ${{ secrets.token || secrets.GITHUB_TOKEN }}

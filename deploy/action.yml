@@ -1,0 +1,57 @@
+name: "Build cf-pages (DEPRECATED)"
+description: "DEPRECATED: Use nicerobot/tools.admin/deploy-cf-pages instead. Auto-detect build pattern (hugo/worker/hugo-worker) and push to cf-pages branch"
+
+inputs:
+  token:
+    description: "GitHub token for pushing to cf-pages"
+    required: true
+  pattern:
+    description: "Force build pattern (hugo, worker, hugo-worker). Auto-detected if omitted."
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Detect build pattern
+      id: detect
+      shell: bash
+      run: |
+        if [[ -n "${{ inputs.pattern }}" ]]; then
+          echo "pattern=${{ inputs.pattern }}" >> "${GITHUB_OUTPUT}"
+        else
+          PATTERN=$("${{ github.action_path }}/scripts/detect-pattern.sh")
+          echo "pattern=${PATTERN}" >> "${GITHUB_OUTPUT}"
+        fi
+        echo "::notice::Build pattern: $(grep pattern "${GITHUB_OUTPUT}" | cut -d= -f2)"
+
+    - name: Setup Hugo
+      if: steps.detect.outputs.pattern == 'hugo' || steps.detect.outputs.pattern == 'hugo-worker'
+      uses: peaceiris/actions-hugo@v3
+      with:
+        hugo-version: latest
+        extended: true
+
+    - name: Hugo build
+      if: steps.detect.outputs.pattern == 'hugo' || steps.detect.outputs.pattern == 'hugo-worker'
+      shell: bash
+      run: hugo --minify
+
+    - name: Setup Node.js
+      if: steps.detect.outputs.pattern == 'worker' || steps.detect.outputs.pattern == 'hugo-worker'
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: ".node-version"
+
+    - name: Install npm dependencies
+      if: steps.detect.outputs.pattern == 'worker' || steps.detect.outputs.pattern == 'hugo-worker'
+      shell: bash
+      run: npm ci
+
+    - name: Build
+      shell: bash
+      run: '"${{ github.action_path }}/scripts/build-${{ steps.detect.outputs.pattern }}.sh"'
+
+    - name: Push to cf-pages
+      shell: bash
+      run: '"${{ github.action_path }}/scripts/push-to-cf-pages.sh" "${{ inputs.token }}" "${{ github.repository }}"'
