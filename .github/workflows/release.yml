@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  # goreleaser builds the versioned radm binary AND, via its `dockers:` config,
+  # the GitHub Action image that COPYs that exact binary — one run, one version,
+  # no recompile. It also publishes the GitHub release with the binary archives.
+  release:
+    needs: [ci]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub release
+      packages: write # push the ghcr image
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # goreleaser needs full history + tags
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          check-latest: true
+          cache: true
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # --skip=validate keeps the project's moving major-version tags (v3, v4 …)
+      # working; goreleaser otherwise rejects a non-semver tag.
+      - run: go tool goreleaser release --clean --skip=validate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # go-tooling is a separate, package-less module shipping its own image; build it
+  # independently of the radm binary/image above.
+  go-tooling-docker:
+    needs: [ci]
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./go-tooling
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/go-tooling:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}/go-tooling:latest

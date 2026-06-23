@@ -1,0 +1,18 @@
+name: "Deploy to gh-pages"
+description: "Publish generated image assets to gh-pages branch with manifest"
+
+inputs:
+  token:
+    description: "GitHub token for pushing to gh-pages"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build manifest and stage deploy
+      shell: bash
+      run: '"${{ github.action_path }}/scripts/build.sh"'
+
+    - name: Push to gh-pages
+      shell: bash
+      run: '"${{ github.action_path }}/scripts/push-to-gh-pages.sh" "${{ inputs.token }}" "${{ github.repository }}"'

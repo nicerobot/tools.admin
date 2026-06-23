@@ -1,0 +1,9 @@
+# Go build / test artifacts
+/tools.admin
+/var/
+*.test
+*.out
+
+# local env
+.env
+.env.*

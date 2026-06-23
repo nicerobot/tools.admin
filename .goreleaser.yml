@@ -1,0 +1,87 @@
+version: 2
+
+project_name: tools.admin
+
+dist: dist
+
+builds:
+  - id: radm
+    main: ./cmd/radm
+    binary: "radm-{{ .Os }}-{{ .Arch }}"
+    no_unique_dist_dir: true
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    goarm:
+      - "7"
+    ignore:
+      - goos: windows
+        goarch: arm64
+      - goos: windows
+        goarch: arm
+    ldflags:
+      - -s -w
+      - -X main.appVersion={{.Version}}
+    flags:
+      - -buildvcs=false
+      - -trimpath
+
+archives:
+  - id: default
+    name_template: "radm-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    files:
+      - LICENSE*
+      - README*
+      - CHANGELOG*
+
+# Build the GitHub Action image from the binary goreleaser just built — the image
+# COPYs radm-linux-amd64, it never recompiles, so the published image and the
+# released binary are the same artifact at the same version. Tagged with the tag
+# and latest; action.yml references the major tag.
+dockers:
+  - image_templates:
+      - "ghcr.io/nicerobot/tools.admin:{{ .Tag }}"
+      - "ghcr.io/nicerobot/tools.admin:latest"
+    dockerfile: Dockerfile
+    goos: linux
+    goarch: amd64
+    use: docker
+    extra_files:
+      - entrypoint.sh
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.source=https://github.com/nicerobot/tools.admin"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+snapshot:
+  version_template: "0.0.0-SNAPSHOT-{{.ShortCommit}}"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: Bug Fixes
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Others
+      order: 999

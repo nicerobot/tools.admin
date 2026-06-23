@@ -1,0 +1,18 @@
+# The Dockerfile COPYs only go.mod/go.sum, cmd/, internal/; everything else is
+# excluded from the build context to keep it small.
+.git/
+.github/
+/var/
+specs/
+go-tooling/
+make/
+refresh-infra/
+deploy/
+deploy-cf-pages/
+deploy-gh-pages/
+examples/
+schema/
+*.md
+.gitignore
+.dockerignore
+.editorconfig

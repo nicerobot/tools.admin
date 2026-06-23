@@ -1,0 +1,53 @@
+name: "Admin Tools"
+description: "Snapshot live GitHub repo settings and create PRs"
+inputs:
+  command:
+    description: "Command to run: snapshot, create-pr, or cleanup-runs"
+    required: true
+  owner:
+    description: "GitHub user or organization (required for snapshot; cleanup-runs auto-detects the current repo from GITHUB_REPOSITORY when omitted)"
+    required: false
+  settings-path:
+    description: "Path to settings directory"
+    required: false
+    default: ".github"
+  branch:
+    description: "Branch name for create-pr"
+    required: false
+    default: "safe-settings/snapshot"
+  base:
+    description: "Base branch for create-pr"
+    required: false
+    default: "main"
+  cleanup-repo:
+    description: "Single repo for cleanup-runs (omit for all repos)"
+    required: false
+    default: ""
+  cleanup-days:
+    description: "Delete runs older than N days"
+    required: false
+    default: "30"
+  cleanup-keep:
+    description: "Keep at least N runs per workflow"
+    required: false
+    default: "5"
+  cleanup-dry-run:
+    description: "Print what would be deleted without deleting"
+    required: false
+    default: "false"
+runs:
+  using: "docker"
+  # Prebuilt image published by the release pipeline (goreleaser builds the radm
+  # binary and the image from it at the same version). Consumers pull instead of
+  # rebuilding the Dockerfile every run. Pinned to the major tag.
+  image: "docker://ghcr.io/nicerobot/tools.admin:v3"
+  env:
+    INPUT_COMMAND: ${{ inputs.command }}
+    INPUT_OWNER: ${{ inputs.owner }}
+    INPUT_SETTINGS_PATH: ${{ inputs.settings-path }}
+    INPUT_BRANCH: ${{ inputs.branch }}
+    INPUT_BASE: ${{ inputs.base }}
+    INPUT_CLEANUP_REPO: ${{ inputs.cleanup-repo }}
+    INPUT_CLEANUP_DAYS: ${{ inputs.cleanup-days }}
+    INPUT_CLEANUP_KEEP: ${{ inputs.cleanup-keep }}
+    INPUT_CLEANUP_DRY_RUN: ${{ inputs.cleanup-dry-run }}
