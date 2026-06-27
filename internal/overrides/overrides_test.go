@@ -2,26 +2,28 @@ package overrides_test
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/nicerobot/tools.admin/internal/adminerr"
-	"github.com/nicerobot/tools.admin/internal/domain"
-	"github.com/nicerobot/tools.admin/internal/githubmodel"
+	"github.com/nicerobot/tools.admin/internal/constants"
+	"github.com/nicerobot/tools.admin/internal/github"
 	"github.com/nicerobot/tools.admin/internal/overrides"
+	"github.com/nicerobot/tools.admin/internal/repo"
 	"github.com/nicerobot/tools.admin/internal/settings"
 )
 
-func sp(s string) *string                       { return &s }
-func bp(b bool) *bool                           { return &b }
-func vp(v domain.Visibility) *domain.Visibility { return &v }
+func sp(s string) *string                   { return &s }
+func bp(b bool) *bool                       { return &b }
+func vp(v repo.Visibility) *repo.Visibility { return &v }
 
 func defaults() settings.RepositoryDefaults {
 	return settings.RepositoryDefaults{
 		DefaultBranch:       "main",
-		Visibility:          domain.VisibilityPrivate,
+		Visibility:          repo.VisibilityPrivate,
 		AllowSquashMerge:    true,
 		AllowMergeCommit:    true,
 		AllowRebaseMerge:    true,
@@ -31,8 +33,8 @@ func defaults() settings.RepositoryDefaults {
 
 // matchingRepo returns a repo whose every field equals the defaults, so it
 // produces no overrides unless a field is changed by the caller.
-func matchingRepo(name string) githubmodel.Repository {
-	return githubmodel.Repository{
+func matchingRepo(name string) github.Repository {
+	return github.Repository{
 		Name:                name,
 		Private:             true,
 		DefaultBranch:       "main",
@@ -44,11 +46,11 @@ func matchingRepo(name string) githubmodel.Repository {
 }
 
 func TestComputeNoOverridesWhenMatching(t *testing.T) {
-	f := overrides.Compute(matchingRepo("boring"), defaults(), "nicerobot", domain.CommentSourceAccount)
+	f := overrides.Compute(matchingRepo("boring"), defaults(), "nicerobot", repo.CommentSourceAccount)
 	assert.Equal(t, overrides.Repository{}, f.Repository)
-	assert.Equal(t, domain.IsFork(false), f.IsFork)
-	assert.Equal(t, domain.Owner("nicerobot"), f.Owner)
-	assert.Equal(t, domain.RepoName("boring"), f.Name)
+	assert.Equal(t, repo.IsFork(false), f.IsFork)
+	assert.Equal(t, repo.Owner("nicerobot"), f.Owner)
+	assert.Equal(t, repo.Name("boring"), f.Name)
 }
 
 func TestComputeStringFields(t *testing.T) {
@@ -57,13 +59,13 @@ func TestComputeStringFields(t *testing.T) {
 	r.Homepage = "https://example.com"
 	r.Private = false // → visibility public (differs)
 	r.DefaultBranch = "master"
-	f := overrides.Compute(r, defaults(), "nicerobot", domain.CommentSourceAccount)
+	f := overrides.Compute(r, defaults(), "nicerobot", repo.CommentSourceAccount)
 	require.NotNil(t, f.Repository.Description)
 	assert.Equal(t, "About nicerobot", *f.Repository.Description)
 	require.NotNil(t, f.Repository.Homepage)
 	assert.Equal(t, "https://example.com", *f.Repository.Homepage)
 	require.NotNil(t, f.Repository.Visibility)
-	assert.Equal(t, domain.VisibilityPublic, *f.Repository.Visibility)
+	assert.Equal(t, repo.VisibilityPublic, *f.Repository.Visibility)
 	require.NotNil(t, f.Repository.DefaultBranch)
 	assert.Equal(t, "master", *f.Repository.DefaultBranch)
 }
@@ -72,7 +74,7 @@ func TestComputeEmptyStringsExcluded(t *testing.T) {
 	r := matchingRepo("test")
 	r.Description = ""
 	r.Homepage = ""
-	f := overrides.Compute(r, defaults(), "nicerobot", domain.CommentSourceAccount)
+	f := overrides.Compute(r, defaults(), "nicerobot", repo.CommentSourceAccount)
 	assert.Nil(t, f.Repository.Description)
 	assert.Nil(t, f.Repository.Homepage)
 }
@@ -90,7 +92,7 @@ func TestComputeBoolDiffsAndArchived(t *testing.T) {
 	r.AllowAutoMerge = true
 	r.DeleteBranchOnMerge = false
 	r.Archived = true
-	f := overrides.Compute(r, defaults(), "nicerobot", domain.CommentSourceAccount).Repository
+	f := overrides.Compute(r, defaults(), "nicerobot", repo.CommentSourceAccount).Repository
 	require.NotNil(t, f.HasIssues)
 	assert.True(t, *f.HasIssues)
 	require.NotNil(t, f.DeleteBranchOnMerge)
@@ -102,32 +104,32 @@ func TestComputeBoolDiffsAndArchived(t *testing.T) {
 func TestComputeArchivedFalseExcluded(t *testing.T) {
 	r := matchingRepo("test")
 	r.Archived = false
-	f := overrides.Compute(r, defaults(), "nicerobot", domain.CommentSourceAccount)
+	f := overrides.Compute(r, defaults(), "nicerobot", repo.CommentSourceAccount)
 	assert.Nil(t, f.Repository.Archived)
 }
 
 func TestComputeForkFlag(t *testing.T) {
 	r := matchingRepo("forked")
 	r.Fork = true
-	f := overrides.Compute(r, defaults(), "nicerobot", domain.CommentSourceAccount)
-	assert.Equal(t, domain.IsFork(true), f.IsFork)
+	f := overrides.Compute(r, defaults(), "nicerobot", repo.CommentSourceAccount)
+	assert.Equal(t, repo.IsFork(true), f.IsFork)
 }
 
 func TestRenderEmptyRepository(t *testing.T) {
-	f := overrides.File{Owner: "nicerobot", Name: "boring", Source: domain.CommentSourceAccount}
+	f := overrides.File{Owner: "nicerobot", Name: "boring", Source: repo.CommentSourceAccount}
 	want := "# nicerobot/boring — overrides from account defaults\n\nrepository: {}\n"
 	assert.Equal(t, want, f.Render())
 }
 
 func TestRenderForkEmpty(t *testing.T) {
-	f := overrides.File{Owner: "nicerobot", Name: "forked", Source: domain.CommentSourceAccount, IsFork: true}
+	f := overrides.File{Owner: "nicerobot", Name: "forked", Source: repo.CommentSourceAccount, IsFork: true}
 	want := "# nicerobot/forked — overrides from account defaults\n\n_fork: true\n\nrepository: {}\n"
 	assert.Equal(t, want, f.Render())
 }
 
 func TestRenderForkWithOverrides(t *testing.T) {
 	f := overrides.File{
-		Owner: "nicerobot", Name: "forked", Source: domain.CommentSourceAccount, IsFork: true,
+		Owner: "nicerobot", Name: "forked", Source: repo.CommentSourceAccount, IsFork: true,
 		Repository: overrides.Repository{HasIssues: bp(true)},
 	}
 	want := "# nicerobot/forked — overrides from account defaults\n\n_fork: true\n\nrepository:\n  has_issues: true\n"
@@ -137,7 +139,7 @@ func TestRenderForkWithOverrides(t *testing.T) {
 // TestRenderAdminGolden reproduces the real admin.yml byte-for-byte.
 func TestRenderAdminGolden(t *testing.T) {
 	f := overrides.File{
-		Owner: "nicerobot", Name: "admin", Source: domain.CommentSourceAccount,
+		Owner: "nicerobot", Name: "admin", Source: repo.CommentSourceAccount,
 		Repository: overrides.Repository{
 			DefaultBranch:       sp("main"),
 			HasIssues:           bp(true),
@@ -159,11 +161,11 @@ func TestRenderAdminGolden(t *testing.T) {
 
 func TestRenderQuotedStringsAndVisibility(t *testing.T) {
 	f := overrides.File{
-		Owner: "nicerobot", Name: "year", Source: domain.CommentSourceOrg,
+		Owner: "nicerobot", Name: "year", Source: repo.CommentSourceOrg,
 		Repository: overrides.Repository{
 			Description:   sp("About nicerobot"),
 			Homepage:      sp("https://nicerobot.github.io/year?i=2024"),
-			Visibility:    vp(domain.VisibilityPublic),
+			Visibility:    vp(repo.VisibilityPublic),
 			DefaultBranch: sp("master"),
 			Archived:      bp(true),
 		},
@@ -186,7 +188,7 @@ func TestComputeRenderProfileGolden(t *testing.T) {
 	r.Description = "About nicerobot"
 	r.Private = false
 	r.DefaultBranch = "master"
-	f := overrides.Compute(r, defaults(), "nicerobot", domain.CommentSourceAccount)
+	f := overrides.Compute(r, defaults(), "nicerobot", repo.CommentSourceAccount)
 	want := "# nicerobot/nicerobot — overrides from account defaults\n" +
 		"\n" +
 		"repository:\n" +
@@ -201,7 +203,7 @@ func TestWriteSuccess(t *testing.T) {
 	var gotData []byte
 	mkdir := func(p string) error { gotDir = p; return nil }
 	write := func(name string, data []byte) error { gotName = name; gotData = data; return nil }
-	f := overrides.File{Owner: "o", Name: "test", Source: domain.CommentSourceAccount}
+	f := overrides.File{Owner: "o", Name: "test", Source: repo.CommentSourceAccount}
 	out, err := overrides.Write(f, "settings/repos", mkdir, write)
 	require.NoError(t, err)
 	assert.Equal(t, "settings/repos", gotDir)
@@ -214,14 +216,14 @@ func TestWriteMkdirError(t *testing.T) {
 	mkdir := func(string) error { return errors.New("denied") }
 	write := func(string, []byte) error { return nil }
 	_, err := overrides.Write(overrides.File{Name: "x"}, "d", mkdir, write)
-	require.ErrorIs(t, err, adminerr.ErrWriteFile)
+	require.ErrorIs(t, err, constants.ErrWriteFile)
 }
 
 func TestWriteFileError(t *testing.T) {
 	mkdir := func(string) error { return nil }
 	write := func(string, []byte) error { return errors.New("disk full") }
 	_, err := overrides.Write(overrides.File{Name: "x"}, "d", mkdir, write)
-	require.ErrorIs(t, err, adminerr.ErrWriteFile)
+	require.ErrorIs(t, err, constants.ErrWriteFile)
 }
 
 func TestListExistingStems(t *testing.T) {
@@ -237,5 +239,18 @@ func TestListExistingStems(t *testing.T) {
 func TestListExistingGlobError(t *testing.T) {
 	glob := func(string) ([]string, error) { return nil, errors.New("bad pattern") }
 	_, err := overrides.ListExisting("repos", glob)
-	require.ErrorIs(t, err, adminerr.ErrListRepoFiles)
+	require.ErrorIs(t, err, constants.ErrListRepoFiles)
+}
+
+func TestOSMkdirAndWriteFile(t *testing.T) {
+	dir := t.TempDir()
+	nested := filepath.Join(dir, "a", "b")
+	require.NoError(t, overrides.OSMkdir(nested))
+
+	file := filepath.Join(nested, "x.yml")
+	require.NoError(t, overrides.OSWriteFile(file, []byte("hello")))
+
+	data, err := os.ReadFile(file)
+	require.NoError(t, err)
+	assert.Equal(t, "hello", string(data))
 }

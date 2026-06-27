@@ -1,11 +1,23 @@
 package overrides
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/nicerobot/tools.admin/internal/adminerr"
+	"github.com/nicerobot/tools.admin/internal/constants"
 )
+
+const (
+	dirPerm  = 0o755
+	filePerm = 0o644
+)
+
+// OSMkdir creates a directory tree with dirPerm; the production MkdirAllFunc.
+func OSMkdir(path string) error { return os.MkdirAll(path, dirPerm) }
+
+// OSWriteFile writes data with filePerm; the production WriteFileFunc.
+func OSWriteFile(name string, data []byte) error { return os.WriteFile(name, data, filePerm) }
 
 // ReposDir is the path to a settings repos/ directory.
 type ReposDir string
@@ -29,11 +41,11 @@ type RemoveFunc func(name string) error
 // directory if needed. It returns the written path.
 func Write(f File, reposDir ReposDir, mkdir MkdirAllFunc, write WriteFileFunc) (OutFile, error) {
 	if err := mkdir(string(reposDir)); err != nil {
-		return "", adminerr.ErrWriteFile.With(err, "dir", string(reposDir))
+		return "", constants.ErrWriteFile.With(err, "dir", string(reposDir))
 	}
 	outfile := filepath.Join(string(reposDir), string(f.Name)+".yml")
 	if err := write(outfile, []byte(f.Render())); err != nil {
-		return "", adminerr.ErrWriteFile.With(err, "file", outfile)
+		return "", constants.ErrWriteFile.With(err, "file", outfile)
 	}
 	return OutFile(outfile), nil
 }
@@ -43,7 +55,7 @@ func Write(f File, reposDir ReposDir, mkdir MkdirAllFunc, write WriteFileFunc) (
 func ListExisting(reposDir ReposDir, glob GlobFunc) ([]string, error) {
 	matches, err := glob(filepath.Join(string(reposDir), "*.yml"))
 	if err != nil {
-		return nil, adminerr.ErrListRepoFiles.With(err, "dir", string(reposDir))
+		return nil, constants.ErrListRepoFiles.With(err, "dir", string(reposDir))
 	}
 	stems := make([]string, 0, len(matches))
 	for _, m := range matches {

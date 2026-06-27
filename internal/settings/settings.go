@@ -13,8 +13,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/nicerobot/tools.admin/internal/adminerr"
-	"github.com/nicerobot/tools.admin/internal/domain"
+	"github.com/nicerobot/tools.admin/internal/constants"
+	"github.com/nicerobot/tools.admin/internal/repo"
 )
 
 const settingsFile = "settings.yml"
@@ -27,18 +27,18 @@ type ReadFileFunc func(name string) ([]byte, error)
 // live repo is diffed against. The defaults seeded by Defaults() are retained
 // for any key the file omits.
 type RepositoryDefaults struct {
-	DefaultBranch       string            `yaml:"default_branch"`
-	Visibility          domain.Visibility `yaml:"visibility"`
-	HasIssues           bool              `yaml:"has_issues"`
-	HasProjects         bool              `yaml:"has_projects"`
-	HasWiki             bool              `yaml:"has_wiki"`
-	HasDiscussions      bool              `yaml:"has_discussions"`
-	IsTemplate          bool              `yaml:"is_template"`
-	AllowSquashMerge    bool              `yaml:"allow_squash_merge"`
-	AllowMergeCommit    bool              `yaml:"allow_merge_commit"`
-	AllowRebaseMerge    bool              `yaml:"allow_rebase_merge"`
-	AllowAutoMerge      bool              `yaml:"allow_auto_merge"`
-	DeleteBranchOnMerge bool              `yaml:"delete_branch_on_merge"`
+	DefaultBranch       string          `yaml:"default_branch"`
+	Visibility          repo.Visibility `yaml:"visibility"`
+	HasIssues           bool            `yaml:"has_issues"`
+	HasProjects         bool            `yaml:"has_projects"`
+	HasWiki             bool            `yaml:"has_wiki"`
+	HasDiscussions      bool            `yaml:"has_discussions"`
+	IsTemplate          bool            `yaml:"is_template"`
+	AllowSquashMerge    bool            `yaml:"allow_squash_merge"`
+	AllowMergeCommit    bool            `yaml:"allow_merge_commit"`
+	AllowRebaseMerge    bool            `yaml:"allow_rebase_merge"`
+	AllowAutoMerge      bool            `yaml:"allow_auto_merge"`
+	DeleteBranchOnMerge bool            `yaml:"delete_branch_on_merge"`
 }
 
 // OrgSettings is the decoded settings.yml; only repository defaults are used.
@@ -52,7 +52,7 @@ func Defaults() OrgSettings {
 	return OrgSettings{
 		Repository: RepositoryDefaults{
 			DefaultBranch:       "main",
-			Visibility:          domain.VisibilityPrivate,
+			Visibility:          repo.VisibilityPrivate,
 			AllowSquashMerge:    true,
 			AllowMergeCommit:    true,
 			AllowRebaseMerge:    true,
@@ -64,7 +64,7 @@ func Defaults() OrgSettings {
 // Load reads <path>/settings.yml via read and decodes it over the defaults. A
 // missing file yields ErrSettingsNotFound; malformed YAML yields
 // ErrInvalidSettings.
-func Load(read ReadFileFunc, path domain.SettingsPath) (OrgSettings, error) {
+func Load(read ReadFileFunc, path repo.SettingsPath) (OrgSettings, error) {
 	file := filepath.Join(string(path), settingsFile)
 	data, err := read(file)
 	if err != nil {
@@ -72,7 +72,7 @@ func Load(read ReadFileFunc, path domain.SettingsPath) (OrgSettings, error) {
 	}
 	out := Defaults()
 	if err := yaml.Unmarshal(data, &out); err != nil {
-		return OrgSettings{}, adminerr.ErrInvalidSettings.With(err, "file", file)
+		return OrgSettings{}, constants.ErrInvalidSettings.With(err, "file", file)
 	}
 	return out, nil
 }
@@ -81,7 +81,7 @@ func Load(read ReadFileFunc, path domain.SettingsPath) (OrgSettings, error) {
 // the original "fatal when missing" contract.
 func notFound(err error, file string) error {
 	if errors.Is(err, fs.ErrNotExist) {
-		return adminerr.ErrSettingsNotFound.With(nil, "file", file)
+		return constants.ErrSettingsNotFound.With(nil, "file", file)
 	}
-	return adminerr.ErrSettingsNotFound.With(err, "file", file)
+	return constants.ErrSettingsNotFound.With(err, "file", file)
 }

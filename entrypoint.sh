@@ -9,12 +9,12 @@ command="${INPUT_COMMAND:?INPUT_COMMAND is required}"
 
 case "${command}" in
   snapshot)
-    exec tools.admin snapshot \
+    exec radm snapshot \
       --owner "${INPUT_OWNER:?INPUT_OWNER is required for snapshot}" \
       --settings-path "${INPUT_SETTINGS_PATH:-.github}"
     ;;
   create-pr)
-    exec tools.admin create-pr \
+    exec radm create-pr \
       --settings-path "${INPUT_SETTINGS_PATH:-.github}" \
       --branch "${INPUT_BRANCH:-safe-settings/snapshot}" \
       --base "${INPUT_BASE:-main}"
@@ -28,7 +28,7 @@ case "${command}" in
     [ -n "${INPUT_CLEANUP_DAYS:-}" ] && args="$args --days ${INPUT_CLEANUP_DAYS}"
     [ -n "${INPUT_CLEANUP_KEEP:-}" ] && args="$args --keep ${INPUT_CLEANUP_KEEP}"
     [ "${INPUT_CLEANUP_DRY_RUN:-false}" = "true" ] && args="$args --dry-run"
-    exec tools.admin cleanup-runs $args
+    exec radm cleanup-runs $args
     ;;
   *)
     echo "Unknown command: ${command}" >&2

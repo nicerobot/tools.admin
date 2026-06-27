@@ -5,9 +5,9 @@ project_name: tools.admin
 dist: dist
 
 builds:
-  - id: "{{ .ProjectName }}"
-    main: ./cmd/{{ .ProjectName }}
-    binary: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+  - id: radm
+    main: ./cmd/radm
+    binary: "radm-{{ .Os }}-{{ .Arch }}"
     no_unique_dist_dir: true
     env:
       - CGO_ENABLED=0
@@ -35,7 +35,7 @@ builds:
 
 archives:
   - id: default
-    name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    name_template: "radm-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     files:
       - LICENSE*
       - README*

@@ -1,0 +1,21 @@
+# Per-repo customization for the canonical go-make Makefile (read last via the
+# `-include Makefile.local` at the tail of ./Makefile). This is the ONLY place
+# this repo diverges from the shared toolchain — it sets documented hook
+# variables, it never redefines a shared target.
+
+# go-tooling/ is a standalone, package-less tool-pinning module (its go.mod
+# carries no .go files — it exists only to vendor the legacy go-tooling action's
+# toolchain). The shared Makefile auto-discovers every nested go.mod as a build
+# SUBMODULE and would `go vet -C go-tooling ./...`, which fails with "matched no
+# packages". It is not part of this CLI's build, so drop it from the fan-out.
+#
+# The shared file derives VET_SUBMODULES/TEST_SUBMODULES/... with `:=` immediately
+# after `SUBMODULES ?=`, before this file is `-include`d, so clearing SUBMODULES
+# here is not enough — the already-expanded derived lists are cleared too. These
+# are variables (not targets), so setting them is a permitted customization, not a
+# forbidden target redefinition.
+SUBMODULES :=
+VET_SUBMODULES :=
+TEST_SUBMODULES :=
+TESTALL_SUBMODULES :=
+DEPS_SUBMODULES :=

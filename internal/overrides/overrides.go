@@ -6,10 +6,9 @@ package overrides
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/nicerobot/tools.admin/internal/domain"
-	"github.com/nicerobot/tools.admin/internal/githubmodel"
+	"github.com/nicerobot/tools.admin/internal/github"
+	"github.com/nicerobot/tools.admin/internal/repo"
 	"github.com/nicerobot/tools.admin/internal/settings"
 )
 
@@ -18,7 +17,7 @@ import (
 type Repository struct {
 	Description         *string
 	Homepage            *string
-	Visibility          *domain.Visibility
+	Visibility          *repo.Visibility
 	DefaultBranch       *string
 	HasIssues           *bool
 	HasProjects         *bool
@@ -35,60 +34,60 @@ type Repository struct {
 
 // File is a fully-resolved override document for one repository.
 type File struct {
-	Owner      domain.Owner
-	Name       domain.RepoName
-	Source     domain.CommentSource
-	IsFork     domain.IsFork
 	Repository Repository
+	Owner      repo.Owner
+	Name       repo.Name
+	Source     repo.CommentSource
+	IsFork     repo.IsFork
 }
 
 // Compute diffs repo against defaults, returning the override document. The
 // description/homepage are included when non-empty; archived only when true;
 // every other field only when it differs from the default.
 func Compute(
-	repo githubmodel.Repository,
+	gh github.Repository,
 	defaults settings.RepositoryDefaults,
-	owner domain.Owner,
-	source domain.CommentSource,
+	owner repo.Owner,
+	source repo.CommentSource,
 ) File {
-	r := applyBools(applyStrings(Repository{}, repo, defaults), repo, defaults)
+	r := applyBools(applyStrings(Repository{}, gh, defaults), gh, defaults)
 	return File{
 		Owner:      owner,
-		Name:       domain.RepoName(repo.Name),
+		Name:       repo.Name(gh.Name),
 		Source:     source,
-		IsFork:     domain.IsFork(repo.Fork),
+		IsFork:     repo.IsFork(gh.Fork),
 		Repository: r,
 	}
 }
 
-func applyStrings(r Repository, repo githubmodel.Repository, d settings.RepositoryDefaults) Repository {
-	if repo.Description != "" {
-		r.Description = ptr(repo.Description)
+func applyStrings(r Repository, gh github.Repository, d settings.RepositoryDefaults) Repository {
+	if gh.Description != "" {
+		r.Description = ptr(gh.Description)
 	}
-	if repo.Homepage != "" {
-		r.Homepage = ptr(repo.Homepage)
+	if gh.Homepage != "" {
+		r.Homepage = ptr(gh.Homepage)
 	}
-	if repo.Visibility() != d.Visibility {
-		r.Visibility = ptr(repo.Visibility())
+	if gh.Visibility() != d.Visibility {
+		r.Visibility = ptr(gh.Visibility())
 	}
-	if repo.DefaultBranch != d.DefaultBranch {
-		r.DefaultBranch = ptr(repo.DefaultBranch)
+	if gh.DefaultBranch != d.DefaultBranch {
+		r.DefaultBranch = ptr(gh.DefaultBranch)
 	}
 	return r
 }
 
-func applyBools(r Repository, repo githubmodel.Repository, d settings.RepositoryDefaults) Repository {
-	r.HasIssues = boolDiff(repo.HasIssues, d.HasIssues)
-	r.HasProjects = boolDiff(repo.HasProjects, d.HasProjects)
-	r.HasWiki = boolDiff(repo.HasWiki, d.HasWiki)
-	r.HasDiscussions = boolDiff(repo.HasDiscussions, d.HasDiscussions)
-	r.IsTemplate = boolDiff(repo.IsTemplate, d.IsTemplate)
-	r.AllowSquashMerge = boolDiff(repo.AllowSquashMerge, d.AllowSquashMerge)
-	r.AllowMergeCommit = boolDiff(repo.AllowMergeCommit, d.AllowMergeCommit)
-	r.AllowRebaseMerge = boolDiff(repo.AllowRebaseMerge, d.AllowRebaseMerge)
-	r.AllowAutoMerge = boolDiff(repo.AllowAutoMerge, d.AllowAutoMerge)
-	r.DeleteBranchOnMerge = boolDiff(repo.DeleteBranchOnMerge, d.DeleteBranchOnMerge)
-	if repo.Archived {
+func applyBools(r Repository, gh github.Repository, d settings.RepositoryDefaults) Repository {
+	r.HasIssues = boolDiff(gh.HasIssues, d.HasIssues)
+	r.HasProjects = boolDiff(gh.HasProjects, d.HasProjects)
+	r.HasWiki = boolDiff(gh.HasWiki, d.HasWiki)
+	r.HasDiscussions = boolDiff(gh.HasDiscussions, d.HasDiscussions)
+	r.IsTemplate = boolDiff(gh.IsTemplate, d.IsTemplate)
+	r.AllowSquashMerge = boolDiff(gh.AllowSquashMerge, d.AllowSquashMerge)
+	r.AllowMergeCommit = boolDiff(gh.AllowMergeCommit, d.AllowMergeCommit)
+	r.AllowRebaseMerge = boolDiff(gh.AllowRebaseMerge, d.AllowRebaseMerge)
+	r.AllowAutoMerge = boolDiff(gh.AllowAutoMerge, d.AllowAutoMerge)
+	r.DeleteBranchOnMerge = boolDiff(gh.DeleteBranchOnMerge, d.DeleteBranchOnMerge)
+	if gh.Archived {
 		r.Archived = ptr(true)
 	}
 	return r
@@ -113,24 +112,24 @@ type kv struct {
 // its value already formatted (quoted strings, bare strings, or bool literals).
 func (r Repository) lines() []kv {
 	specs := []struct {
-		key string
 		val func() (string, bool)
+		key string
 	}{
-		{"description", quoted(r.Description)},
-		{"homepage", quoted(r.Homepage)},
-		{"visibility", visibilityVal(r.Visibility)},
-		{"default_branch", bareStr(r.DefaultBranch)},
-		{"has_issues", boolVal(r.HasIssues)},
-		{"has_projects", boolVal(r.HasProjects)},
-		{"has_wiki", boolVal(r.HasWiki)},
-		{"has_discussions", boolVal(r.HasDiscussions)},
-		{"is_template", boolVal(r.IsTemplate)},
-		{"allow_squash_merge", boolVal(r.AllowSquashMerge)},
-		{"allow_merge_commit", boolVal(r.AllowMergeCommit)},
-		{"allow_rebase_merge", boolVal(r.AllowRebaseMerge)},
-		{"allow_auto_merge", boolVal(r.AllowAutoMerge)},
-		{"delete_branch_on_merge", boolVal(r.DeleteBranchOnMerge)},
-		{"archived", boolVal(r.Archived)},
+		{key: "description", val: quoted(r.Description)},
+		{key: "homepage", val: quoted(r.Homepage)},
+		{key: "visibility", val: visibilityVal(r.Visibility)},
+		{key: "default_branch", val: bareStr(r.DefaultBranch)},
+		{key: "has_issues", val: boolVal(r.HasIssues)},
+		{key: "has_projects", val: boolVal(r.HasProjects)},
+		{key: "has_wiki", val: boolVal(r.HasWiki)},
+		{key: "has_discussions", val: boolVal(r.HasDiscussions)},
+		{key: "is_template", val: boolVal(r.IsTemplate)},
+		{key: "allow_squash_merge", val: boolVal(r.AllowSquashMerge)},
+		{key: "allow_merge_commit", val: boolVal(r.AllowMergeCommit)},
+		{key: "allow_rebase_merge", val: boolVal(r.AllowRebaseMerge)},
+		{key: "allow_auto_merge", val: boolVal(r.AllowAutoMerge)},
+		{key: "delete_branch_on_merge", val: boolVal(r.DeleteBranchOnMerge)},
+		{key: "archived", val: boolVal(r.Archived)},
 	}
 	out := make([]kv, 0, len(specs))
 	for _, s := range specs {
@@ -159,7 +158,7 @@ func bareStr(p *string) func() (string, bool) {
 	}
 }
 
-func visibilityVal(p *domain.Visibility) func() (string, bool) {
+func visibilityVal(p *repo.Visibility) func() (string, bool) {
 	return func() (string, bool) {
 		if p == nil {
 			return "", false
@@ -182,22 +181,20 @@ func boolVal(p *bool) func() (string, bool) {
 
 // Render returns the exact repos/<name>.yml byte content for the override file.
 func (f File) Render() string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "# %s/%s — overrides from %s defaults\n\n", f.Owner, f.Name, f.Source)
+	out := fmt.Sprintf("# %s/%s — overrides from %s defaults\n\n", f.Owner, f.Name, f.Source)
 	if f.IsFork {
-		b.WriteString("_fork: true\n\n")
+		out += "_fork: true\n\n"
 	}
-	renderRepository(&b, f.Repository.lines())
-	return b.String()
+	return out + renderRepository(f.Repository.lines())
 }
 
-func renderRepository(b *strings.Builder, lines []kv) {
+func renderRepository(lines []kv) string {
 	if len(lines) == 0 {
-		b.WriteString("repository: {}\n")
-		return
+		return "repository: {}\n"
 	}
-	b.WriteString("repository:\n")
+	out := "repository:\n"
 	for _, l := range lines {
-		fmt.Fprintf(b, "  %s: %s\n", l.key, l.value)
+		out += fmt.Sprintf("  %s: %s\n", l.key, l.value)
 	}
+	return out
 }

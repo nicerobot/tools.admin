@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/nicerobot/tools.admin/internal/adminerr"
-	"github.com/nicerobot/tools.admin/internal/domain"
+	"github.com/nicerobot/tools.admin/internal/constants"
+	"github.com/nicerobot/tools.admin/internal/repo"
 	"github.com/nicerobot/tools.admin/internal/settings"
 )
 
@@ -25,7 +25,7 @@ func reader(data string, err error) settings.ReadFileFunc {
 func TestDefaults(t *testing.T) {
 	d := settings.Defaults().Repository
 	assert.Equal(t, "main", d.DefaultBranch)
-	assert.Equal(t, domain.VisibilityPrivate, d.Visibility)
+	assert.Equal(t, repo.VisibilityPrivate, d.Visibility)
 	assert.False(t, d.HasIssues)
 	assert.True(t, d.AllowSquashMerge)
 	assert.True(t, d.AllowMergeCommit)
@@ -37,14 +37,14 @@ func TestLoadEmptyKeepsDefaults(t *testing.T) {
 	s, err := settings.Load(reader("", nil), ".github")
 	require.NoError(t, err)
 	assert.Equal(t, "main", s.Repository.DefaultBranch)
-	assert.Equal(t, domain.VisibilityPrivate, s.Repository.Visibility)
+	assert.Equal(t, repo.VisibilityPrivate, s.Repository.Visibility)
 	assert.True(t, s.Repository.DeleteBranchOnMerge)
 }
 
 func TestLoadPartialOverridesOnlyPresentKeys(t *testing.T) {
 	s, err := settings.Load(reader("repository:\n  visibility: public\n", nil), ".github")
 	require.NoError(t, err)
-	assert.Equal(t, domain.VisibilityPublic, s.Repository.Visibility)
+	assert.Equal(t, repo.VisibilityPublic, s.Repository.Visibility)
 	assert.Equal(t, "main", s.Repository.DefaultBranch) // default retained
 }
 
@@ -74,17 +74,17 @@ func TestLoadFullRealFormat(t *testing.T) {
 
 func TestLoadMissingFileNotExist(t *testing.T) {
 	_, err := settings.Load(reader("", fs.ErrNotExist), ".github")
-	require.ErrorIs(t, err, adminerr.ErrSettingsNotFound)
+	require.ErrorIs(t, err, constants.ErrSettingsNotFound)
 }
 
 func TestLoadReadErrorOther(t *testing.T) {
 	other := errors.New("permission denied")
 	_, err := settings.Load(reader("", other), ".github")
-	require.ErrorIs(t, err, adminerr.ErrSettingsNotFound)
+	require.ErrorIs(t, err, constants.ErrSettingsNotFound)
 	require.ErrorIs(t, err, other)
 }
 
 func TestLoadInvalidYAML(t *testing.T) {
 	_, err := settings.Load(reader("repository: [unterminated\n", nil), ".github")
-	require.ErrorIs(t, err, adminerr.ErrInvalidSettings)
+	require.ErrorIs(t, err, constants.ErrInvalidSettings)
 }
