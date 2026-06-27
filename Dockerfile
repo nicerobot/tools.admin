@@ -1,21 +1,27 @@
-FROM python:3.12-slim AS builder
+# Container image for the tools.admin GitHub Action. The CLI is a Go binary; the
+# runtime additionally needs git (snapshot/create-pr operate on a checkout) and
+# gh (create-pr opens the PR). entrypoint.sh invokes `tools.admin <subcommand>`
+# from PATH.
+FROM golang:1.26 AS builder
 
 WORKDIR /build
-COPY pyproject.toml .
-COPY src/ src/
-RUN pip install --no-cache-dir --prefix=/install .
+COPY go.mod go.sum ./
+RUN go mod download
+COPY cmd/ cmd/
+COPY internal/ internal/
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/tools.admin ./cmd/tools.admin
 
-FROM python:3.12-slim
+FROM debian:bookworm-slim
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git \
+    && apt-get install -y --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # install gh CLI
 ADD https://github.com/cli/cli/releases/download/v2.65.0/gh_2.65.0_linux_amd64.deb /tmp/gh.deb
 RUN dpkg -i /tmp/gh.deb && rm /tmp/gh.deb
 
-COPY --from=builder /install /usr/local
+COPY --from=builder /out/tools.admin /usr/local/bin/tools.admin
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

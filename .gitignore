@@ -1,24 +1,9 @@
-__pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
-*.egg
-dist/
-build/
-*.whl
+# Go build / test artifacts
+/tools.admin
+/var/
+*.test
+*.out
 
-.venv/
-venv/
-
-.mypy_cache/
-.pytest_cache/
-.ruff_cache/
-
-*.cover
-htmlcov/
-.coverage
-.coverage.*
-coverage.xml
-
+# local env
 .env
 .env.*

@@ -9,35 +9,16 @@ on:
   workflow_call:
 
 jobs:
-  lint:
+  check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v5
         with:
-          python-version: "3.12"
-      - run: pip install ruff
-      - run: ruff check src/ tests/
-
-  typecheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install -e . && pip install mypy types-PyYAML
-      - run: mypy --strict src/
-
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install -e . && pip install pytest pytest-asyncio jsonschema
-      - run: pytest -v
+          go-version: '1.26'      # minor only — floats to the latest 1.26.x patch
+          check-latest: true
+          cache: true
+      - run: make check
 
   go-tooling:
     runs-on: ubuntu-latest
