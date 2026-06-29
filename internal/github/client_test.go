@@ -329,7 +329,11 @@ func TestListWorkflowRunsWithBefore(t *testing.T) {
 	var query string
 	c := newClient(t, func(r *http.Request) (*http.Response, error) {
 		query = r.URL.RawQuery
-		return resp(200, `{"total_count":2,"workflow_runs":[{"id":1,"workflow_id":1},{"id":2,"workflow_id":1}]}`, nil), nil
+		return resp(
+			200,
+			`{"total_count":2,"workflow_runs":[{"id":1,"workflow_id":1},{"id":2,"workflow_id":1}]}`,
+			nil,
+		), nil
 	})
 	runs, err := c.ListWorkflowRuns("nicerobot", "repo1", "2025-12-01")
 	require.NoError(t, err)

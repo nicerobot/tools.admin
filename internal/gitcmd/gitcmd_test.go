@@ -43,7 +43,11 @@ func TestConfigureBotIdentitySuccess(t *testing.T) {
 	require.NoError(t, svc.ConfigureBotIdentity())
 	require.Len(t, rec.calls, 2)
 	assert.Equal(t, []string{"git", "config", "user.name", "github-actions[bot]"}, rec.calls[0])
-	assert.Equal(t, []string{"git", "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"}, rec.calls[1])
+	assert.Equal(
+		t,
+		[]string{"git", "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"},
+		rec.calls[1],
+	)
 }
 
 func TestConfigureBotIdentityFirstFails(t *testing.T) {

@@ -39,7 +39,13 @@ func TestIntegration_SnapshotWritesOverrides(t *testing.T) {
 	defer server.Close()
 
 	settingsDir := t.TempDir()
-	must.NoError(os.WriteFile(filepath.Join(settingsDir, "settings.yml"), []byte("repository:\n  default_branch: main\n"), 0o644))
+	must.NoError(
+		os.WriteFile(
+			filepath.Join(settingsDir, "settings.yml"),
+			[]byte("repository:\n  default_branch: main\n"),
+			0o644,
+		),
+	)
 
 	t.Setenv("GH_TOKEN", "tok")
 	t.Setenv("GITHUB_API_URL", server.URL)
@@ -53,7 +59,10 @@ func TestIntegration_SnapshotWritesOverrides(t *testing.T) {
 		Metadata: map[string]any{app.LoggerMetadataKey: logger},
 	}
 
-	err := appCmd.Run(context.Background(), []string{"app", "snapshot", "--owner", "acme", "--settings-path", settingsDir})
+	err := appCmd.Run(
+		context.Background(),
+		[]string{"app", "snapshot", "--owner", "acme", "--settings-path", settingsDir},
+	)
 	must.NoError(err)
 
 	// The rendered JSON result names the owner, source and written file.

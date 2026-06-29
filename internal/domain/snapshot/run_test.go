@@ -138,7 +138,11 @@ func TestWritesOverrideFiles(t *testing.T) {
 
 func TestRemovesStaleVerified404(t *testing.T) {
 	h := &harness{
-		gh:       &fakeGH{accountType: "User", repos: []github.Repository{matchingRepo("alive")}, exists: map[string]bool{"dead": false}},
+		gh: &fakeGH{
+			accountType: "User",
+			repos:       []github.Repository{matchingRepo("alive")},
+			exists:      map[string]bool{"dead": false},
+		},
 		existing: []string{"alive", "dead"},
 	}
 	res, err := h.run(t, "nicerobot")
@@ -150,7 +154,11 @@ func TestRemovesStaleVerified404(t *testing.T) {
 
 func TestAbortsWhenStaleRepoExists(t *testing.T) {
 	h := &harness{
-		gh:       &fakeGH{accountType: "User", repos: []github.Repository{matchingRepo("visible")}, exists: map[string]bool{"hidden": true}},
+		gh: &fakeGH{
+			accountType: "User",
+			repos:       []github.Repository{matchingRepo("visible")},
+			exists:      map[string]bool{"hidden": true},
+		},
 		existing: []string{"visible", "hidden"},
 	}
 	_, err := h.run(t, "nicerobot")
@@ -161,7 +169,11 @@ func TestAbortsWhenStaleRepoExists(t *testing.T) {
 
 func TestAbortsOnVerificationError(t *testing.T) {
 	h := &harness{
-		gh:       &fakeGH{accountType: "User", repos: []github.Repository{matchingRepo("alive")}, existsErr: errors.New("server error")},
+		gh: &fakeGH{
+			accountType: "User",
+			repos:       []github.Repository{matchingRepo("alive")},
+			existsErr:   errors.New("server error"),
+		},
 		existing: []string{"alive", "maybe"},
 	}
 	_, err := h.run(t, "nicerobot")
@@ -235,19 +247,28 @@ func TestListReposError(t *testing.T) {
 }
 
 func TestListExistingError(t *testing.T) {
-	h := &harness{gh: &fakeGH{accountType: "User", repos: []github.Repository{matchingRepo("r")}}, globErr: errors.New("boom")}
+	h := &harness{
+		gh:      &fakeGH{accountType: "User", repos: []github.Repository{matchingRepo("r")}},
+		globErr: errors.New("boom"),
+	}
 	_, err := h.run(t, "nicerobot")
 	require.ErrorIs(t, err, constants.ErrListRepoFiles)
 }
 
 func TestWriteError(t *testing.T) {
-	h := &harness{gh: &fakeGH{accountType: "User", repos: []github.Repository{matchingRepo("r")}}, writeErr: errors.New("disk")}
+	h := &harness{
+		gh:       &fakeGH{accountType: "User", repos: []github.Repository{matchingRepo("r")}},
+		writeErr: errors.New("disk"),
+	}
 	_, err := h.run(t, "nicerobot")
 	require.ErrorIs(t, err, constants.ErrWriteFile)
 }
 
 func TestMkdirError(t *testing.T) {
-	h := &harness{gh: &fakeGH{accountType: "User", repos: []github.Repository{matchingRepo("r")}}, mkdirErr: errors.New("denied")}
+	h := &harness{
+		gh:       &fakeGH{accountType: "User", repos: []github.Repository{matchingRepo("r")}},
+		mkdirErr: errors.New("denied"),
+	}
 	_, err := h.run(t, "nicerobot")
 	require.ErrorIs(t, err, constants.ErrWriteFile)
 }

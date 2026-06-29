@@ -123,7 +123,12 @@ func computeFiles(
 	return files, live
 }
 
-func verifyStale(d dependencies, owner repo.Owner, reposDir overrides.ReposDir, live map[string]bool) ([]string, error) {
+func verifyStale(
+	d dependencies,
+	owner repo.Owner,
+	reposDir overrides.ReposDir,
+	live map[string]bool,
+) ([]string, error) {
 	existing, err := overrides.ListExisting(reposDir, d.glob)
 	if err != nil {
 		return nil, err
@@ -153,7 +158,12 @@ func staleNames(existing []string, live map[string]bool) []string {
 	return stale
 }
 
-func apply(d dependencies, reposDir overrides.ReposDir, files []overrides.File, gone []string) ([]string, []string, error) {
+func apply(
+	d dependencies,
+	reposDir overrides.ReposDir,
+	files []overrides.File,
+	gone []string,
+) ([]string, []string, error) {
 	wrote, err := writeAll(d, reposDir, files)
 	if err != nil {
 		return nil, nil, err

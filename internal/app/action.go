@@ -19,7 +19,12 @@ var getLogger = GetLogger
 // between the CLI framework and the domain tier; rendering the result is the
 // default, not a requirement — a command that produces its own output (an
 // interactive REPL, say) may bind its Run without rendering.
-func action[CONFIG, RESULT any](ctx context.Context, command *cli.Command, cfg CONFIG, run Runner[CONFIG, RESULT]) error {
+func action[CONFIG, RESULT any](
+	ctx context.Context,
+	command *cli.Command,
+	cfg CONFIG,
+	run Runner[CONFIG, RESULT],
+) error {
 	logger := getLogger(command)
 
 	result, err := run(ctx, logger, cfg, command.Args().Slice()...)

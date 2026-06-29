@@ -1,0 +1,6 @@
+config:
+  golangci-lint:
+    linters:
+      settings:
+        gosec:
+          excludes: { add: [G204] }   # subprocess command names are internal constants (git, gh, the binary), never user input
