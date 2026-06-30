@@ -49,17 +49,9 @@ func productionLogger(_ *cli.Command) *slog.Logger {
 	return app.NewLogger(os.Stderr, loggerConfig)
 }
 
-type (
-	appVersion string // appVersion represents the application version.
-)
-
 // version is the application version.
-// Set via ldflags: -X main.appVersion=1.0.0
+// Set via ldflags: -X main.version=1.0.0
 var version = "dev"
-
-func getVersion() appVersion {
-	return appVersion(version)
-}
 
 // osExit is indirected so tests can observe the process exit code.
 var osExit = os.Exit
@@ -87,7 +79,7 @@ func createApp(getLogger app.GetLoggerFunc) *cli.Command {
 		Usage:                 usage,
 		ArgsUsage:             argUsage,
 		Description:           description,
-		Version:               string(getVersion()),
+		Version:               version,
 		EnableShellCompletion: true,
 		Commands: []*cli.Command{
 			snapshot.Command(),
