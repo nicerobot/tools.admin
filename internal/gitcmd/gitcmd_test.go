@@ -58,8 +58,8 @@ func TestConfigureBotIdentityFirstFails(t *testing.T) {
 
 func TestCheckoutBranch(t *testing.T) {
 	svc, rec := newService(nil, nil)
-	require.NoError(t, svc.CheckoutBranch("safe-settings/snapshot"))
-	assert.Equal(t, []string{"git", "checkout", "-B", "safe-settings/snapshot"}, rec.calls[0])
+	require.NoError(t, svc.CheckoutBranch("settings-sync/snapshot"))
+	assert.Equal(t, []string{"git", "checkout", "-B", "settings-sync/snapshot"}, rec.calls[0])
 }
 
 func TestStageDirectory(t *testing.T) {
@@ -76,8 +76,8 @@ func TestCommit(t *testing.T) {
 
 func TestForcePush(t *testing.T) {
 	svc, rec := newService(nil, nil)
-	require.NoError(t, svc.ForcePush("safe-settings/snapshot"))
-	assert.Equal(t, []string{"git", "push", "--force", "origin", "safe-settings/snapshot"}, rec.calls[0])
+	require.NoError(t, svc.ForcePush("settings-sync/snapshot"))
+	assert.Equal(t, []string{"git", "push", "--force", "origin", "settings-sync/snapshot"}, rec.calls[0])
 }
 
 func TestCheckedNonZeroExit(t *testing.T) {

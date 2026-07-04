@@ -26,7 +26,7 @@ const (
 
 const (
 	defaultSettingsPath = ".github"
-	defaultBranch       = "safe-settings/snapshot"
+	defaultBranch       = "settings-sync/snapshot"
 	defaultBase         = "main"
 )
 

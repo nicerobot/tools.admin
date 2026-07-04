@@ -11,7 +11,7 @@ const (
 	name        = `snapshot`
 	usage       = `Snapshot live repo settings.`
 	argUsage    = ``
-	description = `Snapshot live GitHub repo settings into safe-settings override files.
+	description = `Snapshot live GitHub repo settings into per-repo settings override files.
 
 For the given owner, this lists every repository, diffs each against the org or
 account defaults from <settings-path>/settings.yml, and writes a

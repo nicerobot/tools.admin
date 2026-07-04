@@ -1,4 +1,4 @@
-// Package settings loads the org-level safe-settings defaults from
+// Package settings loads the org-level settings defaults from
 // <settings-path>/settings.yml. Only the repository: defaults block is
 // consumed — labels/collaborators are ignored, exactly as the original CLI did
 // (they never fed the snapshot output). Defaults are seeded before decode so a

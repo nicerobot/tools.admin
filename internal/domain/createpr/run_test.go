@@ -74,33 +74,33 @@ func runWith(t *testing.T, g *fakeGit, branch repo.Branch, base repo.Base) (Resu
 
 func TestFullFlowWithChanges(t *testing.T) {
 	g := &fakeGit{staged: true, prExists: false}
-	res, err := runWith(t, g, "safe-settings/snapshot", "main")
+	res, err := runWith(t, g, "settings-sync/snapshot", "main")
 	require.NoError(t, err)
 	assert.Equal(t, Result{
-		Branch: "safe-settings/snapshot", Changed: true, Committed: true, Pushed: true, PRCreated: true,
+		Branch: "settings-sync/snapshot", Changed: true, Committed: true, Pushed: true, PRCreated: true,
 	}, res)
 	assert.Equal(t, gitcmd.StagePath(".github/repos"), g.stagePath)
-	assert.Equal(t, repo.Branch("safe-settings/snapshot"), g.pushBranch)
+	assert.Equal(t, repo.Branch("settings-sync/snapshot"), g.pushBranch)
 	assert.Equal(t, gitcmd.CommitMessage("chore: snapshot live repo settings"), g.commitMsg)
 	assert.Equal(t, []string{
 		"chore: snapshot live repo settings",
 		"Auto-generated snapshot of current GitHub repo settings vs org/account defaults.",
-		"safe-settings/snapshot",
+		"settings-sync/snapshot",
 		"main",
 	}, g.prArgs)
 }
 
 func TestNoChangesExitsEarly(t *testing.T) {
 	g := &fakeGit{staged: false}
-	res, err := runWith(t, g, "safe-settings/snapshot", "main")
+	res, err := runWith(t, g, "settings-sync/snapshot", "main")
 	require.NoError(t, err)
-	assert.Equal(t, Result{Branch: "safe-settings/snapshot"}, res)
+	assert.Equal(t, Result{Branch: "settings-sync/snapshot"}, res)
 	assert.NotContains(t, g.calls, "commit")
 }
 
 func TestExistingPRSkipsCreation(t *testing.T) {
 	g := &fakeGit{staged: true, prExists: true}
-	res, err := runWith(t, g, "safe-settings/snapshot", "main")
+	res, err := runWith(t, g, "settings-sync/snapshot", "main")
 	require.NoError(t, err)
 	assert.True(t, res.PRAlreadyOpen)
 	assert.False(t, res.PRCreated)

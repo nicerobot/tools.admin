@@ -1,5 +1,5 @@
 // Package overrides computes a repository's settings diff against the org
-// defaults and renders it to the repos/<name>.yml format the safe-settings
+// defaults and renders it to the repos/<name>.yml format the settings
 // snapshot consumes. The render order is fixed to the field declaration order
 // so output is byte-for-byte stable across runs.
 package overrides

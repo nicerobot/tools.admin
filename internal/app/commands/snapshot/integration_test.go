@@ -71,7 +71,7 @@ func TestIntegration_SnapshotWritesOverrides(t *testing.T) {
 	want.Contains(out, `"comment_source": "org"`)
 	want.Contains(out, filepath.Join(settingsDir, "repos", "widget.yml"))
 
-	// The real override file is on disk with the expected safe-settings shape.
+	// The real override file is on disk with the expected settings-override shape.
 	data, err := os.ReadFile(filepath.Join(settingsDir, "repos", "widget.yml"))
 	must.NoError(err)
 	body := string(data)

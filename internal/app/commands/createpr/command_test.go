@@ -24,8 +24,8 @@ func TestCreatePRCommand(t *testing.T) {
 		{
 			name:         "defaults",
 			args:         []string{"app", "create-pr"},
-			wantCfg:      domain.Config{SettingsPath: ".github", Branch: "safe-settings/snapshot", Base: "main"},
-			wantContains: `"branch": "safe-settings/snapshot"`,
+			wantCfg:      domain.Config{SettingsPath: ".github", Branch: "settings-sync/snapshot", Base: "main"},
+			wantContains: `"branch": "settings-sync/snapshot"`,
 		},
 		{
 			name: "overrides branch and base",

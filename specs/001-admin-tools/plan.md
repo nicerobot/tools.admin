@@ -8,7 +8,7 @@
 
 ## System Overview
 
-Admin Tools snapshots live GitHub repository settings and produces per-repo YAML override files compatible with github/safe-settings. It replaces fragile shell scripts (`snapshot-live-settings.sh`, `create-snapshot-pr.sh`) from `nicerobot/admin` with tested, typed Python code.
+Admin Tools snapshots live GitHub repository settings and produces per-repo YAML override files compatible with the retired settings-sync app. It replaces fragile shell scripts (`snapshot-live-settings.sh`, `create-snapshot-pr.sh`) from `nicerobot/admin` with tested, typed Python code.
 
 Consumer org admin repos invoke it as `uses: nicerobot/tools.admin@v1`.
 
@@ -18,7 +18,7 @@ Consumer org admin repos invoke it as `uses: nicerobot/tools.admin@v1`.
 tools.admin/
 ├── .github/workflows/ci.yml     # lint, typecheck, test, docker build+push
 ├── .specify/                     # Spec Kit artifacts
-├── schema/                       # Pinned safe-settings JSON schema (v2.1.18)
+├── schema/                       # Pinned settings-sync JSON schema (v2.1.18)
 ├── src/admin_tools/
 │   ├── __init__.py               # Package version
 │   ├── __main__.py               # python -m admin_tools entry
@@ -49,7 +49,7 @@ tools.admin/
 │   ├── test_cleanup_runs.py      # Workflow run cleanup: delete, keep, dry-run, single/all repos
 │   ├── test_cli.py               # Argparse routing for all subcommands
 │   ├── test_git.py               # Subprocess wrappers
-│   └── test_schema_validation.py # safe-settings JSON schema validation
+│   └── test_schema_validation.py # settings-sync JSON schema validation
 ├── Dockerfile                    # Multi-stage: python:3.12-slim + git + gh
 ├── entrypoint.sh                 # Routes action inputs to CLI
 ├── action.yml                    # GitHub Action metadata (docker type)
@@ -169,10 +169,10 @@ GitHub API → [GitHubRepository] → compute_overrides() → [RepoOverrideFile]
 **Selected**: stdlib argparse.
 **Tradeoffs**: More verbose; zero extra dependencies.
 
-### Pinned safe-settings schema
-**Context**: Generated YAML must be valid safe-settings input.
+### Pinned settings-sync schema
+**Context**: Generated YAML must be valid input for the retired settings-sync app.
 **Selected**: Pinned JSON schema (v2.1.18) validated in tests.
-**Tradeoffs**: Must manually update when safe-settings schema changes; gains CI-enforced compatibility.
+**Tradeoffs**: Must manually update when the settings-sync schema changes; gains CI-enforced compatibility.
 
 ### Verify-then-act for stale file deletion
 **Context**: PR #4 in nicerobot/admin proposed deleting 59 of 62 override files because a scoped GitHub App token only had access to 3 repos. `list_repos()` returned 3 repos and the stale file logic treated all other override files as deletable.

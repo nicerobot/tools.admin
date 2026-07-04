@@ -14,7 +14,7 @@ inputs:
   branch:
     description: "Branch name for create-pr"
     required: false
-    default: "safe-settings/snapshot"
+    default: "settings-sync/snapshot"
   base:
     description: "Base branch for create-pr"
     required: false

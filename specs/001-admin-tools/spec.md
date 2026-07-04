@@ -98,13 +98,13 @@ An org admin runs the cleanup-runs command to delete old GitHub Actions workflow
 | FR-003 | Pagination | Handle GitHub API pagination via Link headers | All pages followed until no `rel="next"` |
 | FR-004 | Load defaults | Load org/account defaults from `.github/settings.yml` | OrgSettings model populated correctly |
 | FR-005 | Compute overrides | Compute per-repo overrides by comparing live settings against defaults | Only differing fields present in output |
-| FR-006 | Write YAML | Write override YAML files in exact safe-settings format | Matches format fidelity rules (Principle II) |
+| FR-006 | Write YAML | Write override YAML files in the exact settings-sync format | Matches format fidelity rules (Principle II) |
 | FR-007 | Stale file cleanup | Remove overrides for deleted repos after individual 404 verification | Each candidate verified via GET before removal |
 | FR-007a | Abort on scope mismatch | Abort entire snapshot if any stale candidate returns 200 | Zero files modified on abort |
 | FR-008 | Create PR | Create git branch, commit changes, force push, open PR | PR created with correct branch and title |
 | FR-009 | Skip empty PR | Skip PR creation when no changes are staged | "No changes to commit." message |
 | FR-010 | Skip duplicate PR | Skip PR creation when open PR exists for the branch | No duplicate PR created |
-| FR-011 | Schema validation | Validate generated YAML against safe-settings JSON schema in tests | Tests pass against pinned v2.1.18 schema |
+| FR-011 | Schema validation | Validate generated YAML against the settings-sync JSON schema in tests | Tests pass against pinned v2.1.18 schema |
 | FR-012 | Cleanup runs | Delete old workflow runs across repos via `cleanup-runs` command | Runs older than cutoff deleted |
 | FR-013 | Group by workflow | Group runs by `workflow_id`, retain `--keep` newest per workflow | Correct number retained per workflow |
 | FR-014 | Dry-run mode | `--dry-run` prints planned deletions without executing | No API delete calls in dry-run |
@@ -134,6 +134,6 @@ An org admin runs the cleanup-runs command to delete old GitHub Actions workflow
 ## Integrations
 
 - **GitHub REST API** (v2022-11-28): Repository listing, user/org detection, repo existence verification, workflow run listing and deletion.
-- **github/safe-settings**: Downstream consumer of generated YAML files. Schema pinned to v2.1.18.
+- **Retired settings-sync app**: Downstream consumer of generated YAML files. Schema pinned to v2.1.18.
 - **gh CLI**: Used for PR creation and existence checking in the `create-pr` command.
 - **git CLI**: Used for branch, stage, commit, push operations in the `create-pr` command.

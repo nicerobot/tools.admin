@@ -16,7 +16,7 @@ case "${command}" in
   create-pr)
     exec radm create-pr \
       --settings-path "${INPUT_SETTINGS_PATH:-.github}" \
-      --branch "${INPUT_BRANCH:-safe-settings/snapshot}" \
+      --branch "${INPUT_BRANCH:-settings-sync/snapshot}" \
       --base "${INPUT_BASE:-main}"
     ;;
   cleanup-runs)

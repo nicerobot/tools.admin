@@ -18,7 +18,7 @@ Replace the Python `admin_tools` package (the `tools.admin` console CLI: `snapsh
 - Stale detection: `repos/*.yml` stems with no live repo are candidates; verify each via `GET /repos/{o}/{name}` — 404/301 ⇒ gone, 200 ⇒ **abort with exit 1 before any write** (token-access guard), other status ⇒ raise.
 - Then write `repos/<name>.yml` for every live repo and delete confirmed-gone files.
 
-### `create-pr --settings-path <.github> --branch <safe-settings/snapshot> --base <main>`
+### `create-pr --settings-path <.github> --branch <settings-sync/snapshot> --base <main>`
 - `git config` bot identity (`github-actions[bot]` / `41898282+github-actions[bot]@users.noreply.github.com`), `git checkout -B <branch>`, `git add --all <settings-path>/repos`.
 - If nothing staged (`git diff --cached --quiet`) ⇒ print "No changes to commit." and return.
 - Else commit `chore: snapshot live repo settings`, `git push --force origin <branch>`; if no open PR for head (`gh pr list`) ⇒ `gh pr create` with fixed title/body.

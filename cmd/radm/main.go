@@ -20,7 +20,7 @@ const (
 	description = `GitHub admin automation tools.
 
 Available Commands:
-  snapshot       - Snapshot live repo settings into safe-settings override files
+  snapshot       - Snapshot live repo settings into per-repo settings override files
   create-pr      - Commit a snapshot onto a branch and open a pull request
   cleanup-runs   - Delete old GitHub Actions workflow runs
 
