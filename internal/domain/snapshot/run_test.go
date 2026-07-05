@@ -13,6 +13,7 @@ import (
 
 	"github.com/nicerobot/tools.admin/internal/constants"
 	"github.com/nicerobot/tools.admin/internal/github"
+	"github.com/nicerobot/tools.admin/internal/overrides"
 	"github.com/nicerobot/tools.admin/internal/repo"
 )
 
@@ -64,7 +65,7 @@ func (h *harness) install(t *testing.T) {
 		return dependencies{
 			github:    h.gh,
 			readFile:  h.readFile,
-			mkdir:     func(string) error { return h.mkdirErr },
+			mkdir:     func(overrides.ReposDir) error { return h.mkdirErr },
 			writeFile: h.writeFile,
 			glob:      h.globFn,
 			remove:    h.removeFn,
@@ -79,11 +80,11 @@ func (h *harness) readFile(string) ([]byte, error) {
 	return []byte(h.loadData), nil
 }
 
-func (h *harness) writeFile(name string, data []byte) error {
+func (h *harness) writeFile(name overrides.OutFile, data []byte) error {
 	if h.writeErr != nil {
 		return h.writeErr
 	}
-	h.wrote[name] = string(data)
+	h.wrote[string(name)] = string(data)
 	return nil
 }
 
@@ -115,13 +116,13 @@ func (h *harness) run(t *testing.T, owner repo.Owner) (Result, error) {
 
 func matchingRepo(name string) github.Repository {
 	return github.Repository{
-		Name:                name,
-		Private:             true,
-		DefaultBranch:       "main",
-		AllowSquashMerge:    true,
-		AllowMergeCommit:    true,
-		AllowRebaseMerge:    true,
-		DeleteBranchOnMerge: true,
+		Name:                      name,
+		IsPrivate:                 true,
+		DefaultBranch:             "main",
+		CanSquashMerge:            true,
+		CanMergeCommit:            true,
+		CanRebaseMerge:            true,
+		ShouldDeleteBranchOnMerge: true,
 	}
 }
 
@@ -211,7 +212,7 @@ func TestAccountCommentSource(t *testing.T) {
 
 func TestForkMarked(t *testing.T) {
 	r := matchingRepo("forked")
-	r.Fork = true
+	r.IsFork = true
 	h := &harness{gh: &fakeGH{accountType: "User", repos: []github.Repository{r}}}
 	_, err := h.run(t, "nicerobot")
 	require.NoError(t, err)

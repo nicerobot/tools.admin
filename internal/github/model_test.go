@@ -15,11 +15,11 @@ func TestUserAccountType(t *testing.T) {
 }
 
 func TestRepositoryVisibilityPublic(t *testing.T) {
-	r := github.Repository{Private: false}
+	r := github.Repository{IsPrivate: false}
 	assert.Equal(t, repo.VisibilityPublic, r.Visibility())
 }
 
 func TestRepositoryVisibilityPrivate(t *testing.T) {
-	r := github.Repository{Private: true}
+	r := github.Repository{IsPrivate: true}
 	assert.Equal(t, repo.VisibilityPrivate, r.Visibility())
 }

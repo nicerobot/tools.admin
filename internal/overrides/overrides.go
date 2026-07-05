@@ -6,6 +6,7 @@ package overrides
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/nicerobot/tools.admin/internal/github"
 	"github.com/nicerobot/tools.admin/internal/repo"
@@ -15,21 +16,21 @@ import (
 // Repository is the set of override fields, each a pointer so "absent" is
 // distinct from a zero value. Field order here is the emit order.
 type Repository struct {
-	Description         *string
-	Homepage            *string
-	Visibility          *repo.Visibility
-	DefaultBranch       *string
-	HasIssues           *bool
-	HasProjects         *bool
-	HasWiki             *bool
-	HasDiscussions      *bool
-	IsTemplate          *bool
-	AllowSquashMerge    *bool
-	AllowMergeCommit    *bool
-	AllowRebaseMerge    *bool
-	AllowAutoMerge      *bool
-	DeleteBranchOnMerge *bool
-	Archived            *bool
+	Description               *string
+	Homepage                  *string
+	Visibility                *repo.Visibility
+	DefaultBranch             *string
+	HasIssues                 *bool
+	HasProjects               *bool
+	HasWiki                   *bool
+	HasDiscussions            *bool
+	IsTemplate                *bool
+	CanSquashMerge            *bool
+	CanMergeCommit            *bool
+	CanRebaseMerge            *bool
+	CanAutoMerge              *bool
+	ShouldDeleteBranchOnMerge *bool
+	IsArchived                *bool
 }
 
 // File is a fully-resolved override document for one repository.
@@ -55,7 +56,7 @@ func Compute(
 		Owner:      owner,
 		Name:       repo.Name(gh.Name),
 		Source:     source,
-		IsFork:     repo.IsFork(gh.Fork),
+		IsFork:     repo.IsFork(gh.IsFork),
 		Repository: r,
 	}
 }
@@ -82,22 +83,26 @@ func applyBools(r Repository, gh github.Repository, d settings.RepositoryDefault
 	r.HasWiki = boolDiff(gh.HasWiki, d.HasWiki)
 	r.HasDiscussions = boolDiff(gh.HasDiscussions, d.HasDiscussions)
 	r.IsTemplate = boolDiff(gh.IsTemplate, d.IsTemplate)
-	r.AllowSquashMerge = boolDiff(gh.AllowSquashMerge, d.AllowSquashMerge)
-	r.AllowMergeCommit = boolDiff(gh.AllowMergeCommit, d.AllowMergeCommit)
-	r.AllowRebaseMerge = boolDiff(gh.AllowRebaseMerge, d.AllowRebaseMerge)
-	r.AllowAutoMerge = boolDiff(gh.AllowAutoMerge, d.AllowAutoMerge)
-	r.DeleteBranchOnMerge = boolDiff(gh.DeleteBranchOnMerge, d.DeleteBranchOnMerge)
-	if gh.Archived {
-		r.Archived = ptr(true)
+	r.CanSquashMerge = boolDiff(gh.CanSquashMerge, d.CanSquashMerge)
+	r.CanMergeCommit = boolDiff(gh.CanMergeCommit, d.CanMergeCommit)
+	r.CanRebaseMerge = boolDiff(gh.CanRebaseMerge, d.CanRebaseMerge)
+	r.CanAutoMerge = boolDiff(gh.CanAutoMerge, d.CanAutoMerge)
+	r.ShouldDeleteBranchOnMerge = boolDiff(gh.ShouldDeleteBranchOnMerge, d.ShouldDeleteBranchOnMerge)
+	if gh.IsArchived {
+		r.IsArchived = ptr(true)
 	}
 	return r
 }
 
 func ptr[T any](v T) *T { return &v }
 
-func boolDiff(actual, def bool) *bool {
-	if actual != def {
-		return &actual
+// boolDiff returns a pointer to the live flag when it differs from the org
+// default, nil when it matches. It is generic over any bool-shaped flag so the
+// mirror structs' fields pass directly, whatever named flag type they use.
+func boolDiff[T ~bool](isLive, isDefault T) *bool {
+	if isLive != isDefault {
+		v := bool(isLive)
+		return &v
 	}
 	return nil
 }
@@ -108,28 +113,34 @@ type kv struct {
 	value string
 }
 
+// lineSpec pairs an override key with the producer of its optional rendered value.
+type lineSpec struct {
+	val func() (string, bool)
+	key string
+}
+
 // lines returns the present override fields, in declaration order, each with
 // its value already formatted (quoted strings, bare strings, or bool literals).
 func (r Repository) lines() []kv {
-	specs := []struct {
-		val func() (string, bool)
-		key string
-	}{
-		{key: "description", val: quoted(r.Description)},
-		{key: "homepage", val: quoted(r.Homepage)},
-		{key: "visibility", val: visibilityVal(r.Visibility)},
-		{key: "default_branch", val: bareStr(r.DefaultBranch)},
-		{key: "has_issues", val: boolVal(r.HasIssues)},
-		{key: "has_projects", val: boolVal(r.HasProjects)},
-		{key: "has_wiki", val: boolVal(r.HasWiki)},
-		{key: "has_discussions", val: boolVal(r.HasDiscussions)},
-		{key: "is_template", val: boolVal(r.IsTemplate)},
-		{key: "allow_squash_merge", val: boolVal(r.AllowSquashMerge)},
-		{key: "allow_merge_commit", val: boolVal(r.AllowMergeCommit)},
-		{key: "allow_rebase_merge", val: boolVal(r.AllowRebaseMerge)},
-		{key: "allow_auto_merge", val: boolVal(r.AllowAutoMerge)},
-		{key: "delete_branch_on_merge", val: boolVal(r.DeleteBranchOnMerge)},
-		{key: "archived", val: boolVal(r.Archived)},
+	quote := func(s string) string { return `"` + s + `"` }
+	bare := func(s string) string { return s }
+	vis := func(v repo.Visibility) string { return string(v) }
+	specs := []lineSpec{
+		{key: "description", val: optVal(r.Description, quote)},
+		{key: "homepage", val: optVal(r.Homepage, quote)},
+		{key: "visibility", val: optVal(r.Visibility, vis)},
+		{key: "default_branch", val: optVal(r.DefaultBranch, bare)},
+		{key: "has_issues", val: optVal(r.HasIssues, strconv.FormatBool)},
+		{key: "has_projects", val: optVal(r.HasProjects, strconv.FormatBool)},
+		{key: "has_wiki", val: optVal(r.HasWiki, strconv.FormatBool)},
+		{key: "has_discussions", val: optVal(r.HasDiscussions, strconv.FormatBool)},
+		{key: "is_template", val: optVal(r.IsTemplate, strconv.FormatBool)},
+		{key: "allow_squash_merge", val: optVal(r.CanSquashMerge, strconv.FormatBool)},
+		{key: "allow_merge_commit", val: optVal(r.CanMergeCommit, strconv.FormatBool)},
+		{key: "allow_rebase_merge", val: optVal(r.CanRebaseMerge, strconv.FormatBool)},
+		{key: "allow_auto_merge", val: optVal(r.CanAutoMerge, strconv.FormatBool)},
+		{key: "delete_branch_on_merge", val: optVal(r.ShouldDeleteBranchOnMerge, strconv.FormatBool)},
+		{key: "archived", val: optVal(r.IsArchived, strconv.FormatBool)},
 	}
 	out := make([]kv, 0, len(specs))
 	for _, s := range specs {
@@ -140,42 +151,14 @@ func (r Repository) lines() []kv {
 	return out
 }
 
-func quoted(p *string) func() (string, bool) {
+// optVal renders an optional override field: absent when p is nil, otherwise
+// render applied to the pointed-to value.
+func optVal[T any](p *T, render func(T) string) func() (string, bool) {
 	return func() (string, bool) {
 		if p == nil {
 			return "", false
 		}
-		return `"` + *p + `"`, true
-	}
-}
-
-func bareStr(p *string) func() (string, bool) {
-	return func() (string, bool) {
-		if p == nil {
-			return "", false
-		}
-		return *p, true
-	}
-}
-
-func visibilityVal(p *repo.Visibility) func() (string, bool) {
-	return func() (string, bool) {
-		if p == nil {
-			return "", false
-		}
-		return string(*p), true
-	}
-}
-
-func boolVal(p *bool) func() (string, bool) {
-	return func() (string, bool) {
-		if p == nil {
-			return "", false
-		}
-		if *p {
-			return "true", true
-		}
-		return "false", true
+		return render(*p), true
 	}
 }
 

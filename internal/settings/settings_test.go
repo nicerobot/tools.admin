@@ -27,10 +27,10 @@ func TestDefaults(t *testing.T) {
 	assert.Equal(t, "main", d.DefaultBranch)
 	assert.Equal(t, repo.VisibilityPrivate, d.Visibility)
 	assert.False(t, d.HasIssues)
-	assert.True(t, d.AllowSquashMerge)
-	assert.True(t, d.AllowMergeCommit)
-	assert.True(t, d.AllowRebaseMerge)
-	assert.True(t, d.DeleteBranchOnMerge)
+	assert.True(t, d.CanSquashMerge)
+	assert.True(t, d.CanMergeCommit)
+	assert.True(t, d.CanRebaseMerge)
+	assert.True(t, d.ShouldDeleteBranchOnMerge)
 }
 
 func TestLoadEmptyKeepsDefaults(t *testing.T) {
@@ -38,7 +38,7 @@ func TestLoadEmptyKeepsDefaults(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "main", s.Repository.DefaultBranch)
 	assert.Equal(t, repo.VisibilityPrivate, s.Repository.Visibility)
-	assert.True(t, s.Repository.DeleteBranchOnMerge)
+	assert.True(t, s.Repository.ShouldDeleteBranchOnMerge)
 }
 
 func TestLoadPartialOverridesOnlyPresentKeys(t *testing.T) {
@@ -68,8 +68,8 @@ func TestLoadFullRealFormat(t *testing.T) {
 	s, err := settings.Load(reader(data, nil), ".github")
 	require.NoError(t, err)
 	assert.Equal(t, "main", s.Repository.DefaultBranch)
-	assert.True(t, s.Repository.DeleteBranchOnMerge)
-	assert.False(t, s.Repository.AllowAutoMerge)
+	assert.True(t, s.Repository.ShouldDeleteBranchOnMerge)
+	assert.False(t, s.Repository.CanAutoMerge)
 }
 
 func TestLoadMissingFileNotExist(t *testing.T) {

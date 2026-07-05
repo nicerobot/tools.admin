@@ -22,12 +22,12 @@ func vp(v repo.Visibility) *repo.Visibility { return &v }
 
 func defaults() settings.RepositoryDefaults {
 	return settings.RepositoryDefaults{
-		DefaultBranch:       "main",
-		Visibility:          repo.VisibilityPrivate,
-		AllowSquashMerge:    true,
-		AllowMergeCommit:    true,
-		AllowRebaseMerge:    true,
-		DeleteBranchOnMerge: true,
+		DefaultBranch:             "main",
+		Visibility:                repo.VisibilityPrivate,
+		CanSquashMerge:            true,
+		CanMergeCommit:            true,
+		CanRebaseMerge:            true,
+		ShouldDeleteBranchOnMerge: true,
 	}
 }
 
@@ -35,13 +35,13 @@ func defaults() settings.RepositoryDefaults {
 // produces no overrides unless a field is changed by the caller.
 func matchingRepo(name string) github.Repository {
 	return github.Repository{
-		Name:                name,
-		Private:             true,
-		DefaultBranch:       "main",
-		AllowSquashMerge:    true,
-		AllowMergeCommit:    true,
-		AllowRebaseMerge:    true,
-		DeleteBranchOnMerge: true,
+		Name:                      name,
+		IsPrivate:                 true,
+		DefaultBranch:             "main",
+		CanSquashMerge:            true,
+		CanMergeCommit:            true,
+		CanRebaseMerge:            true,
+		ShouldDeleteBranchOnMerge: true,
 	}
 }
 
@@ -57,7 +57,7 @@ func TestComputeStringFields(t *testing.T) {
 	r := matchingRepo("test")
 	r.Description = "About nicerobot"
 	r.Homepage = "https://example.com"
-	r.Private = false // → visibility public (differs)
+	r.IsPrivate = false // → visibility public (differs)
 	r.DefaultBranch = "master"
 	f := overrides.Compute(r, defaults(), "nicerobot", repo.CommentSourceAccount)
 	require.NotNil(t, f.Repository.Description)
@@ -86,31 +86,31 @@ func TestComputeBoolDiffsAndArchived(t *testing.T) {
 	r.HasWiki = true
 	r.HasDiscussions = true
 	r.IsTemplate = true
-	r.AllowSquashMerge = false
-	r.AllowMergeCommit = false
-	r.AllowRebaseMerge = false
-	r.AllowAutoMerge = true
-	r.DeleteBranchOnMerge = false
-	r.Archived = true
+	r.CanSquashMerge = false
+	r.CanMergeCommit = false
+	r.CanRebaseMerge = false
+	r.CanAutoMerge = true
+	r.ShouldDeleteBranchOnMerge = false
+	r.IsArchived = true
 	f := overrides.Compute(r, defaults(), "nicerobot", repo.CommentSourceAccount).Repository
 	require.NotNil(t, f.HasIssues)
 	assert.True(t, *f.HasIssues)
-	require.NotNil(t, f.DeleteBranchOnMerge)
-	assert.False(t, *f.DeleteBranchOnMerge)
-	require.NotNil(t, f.Archived)
-	assert.True(t, *f.Archived)
+	require.NotNil(t, f.ShouldDeleteBranchOnMerge)
+	assert.False(t, *f.ShouldDeleteBranchOnMerge)
+	require.NotNil(t, f.IsArchived)
+	assert.True(t, *f.IsArchived)
 }
 
 func TestComputeArchivedFalseExcluded(t *testing.T) {
 	r := matchingRepo("test")
-	r.Archived = false
+	r.IsArchived = false
 	f := overrides.Compute(r, defaults(), "nicerobot", repo.CommentSourceAccount)
-	assert.Nil(t, f.Repository.Archived)
+	assert.Nil(t, f.Repository.IsArchived)
 }
 
 func TestComputeForkFlag(t *testing.T) {
 	r := matchingRepo("forked")
-	r.Fork = true
+	r.IsFork = true
 	f := overrides.Compute(r, defaults(), "nicerobot", repo.CommentSourceAccount)
 	assert.Equal(t, repo.IsFork(true), f.IsFork)
 }
@@ -141,11 +141,11 @@ func TestRenderAdminGolden(t *testing.T) {
 	f := overrides.File{
 		Owner: "nicerobot", Name: "admin", Source: repo.CommentSourceAccount,
 		Repository: overrides.Repository{
-			DefaultBranch:       sp("main"),
-			HasIssues:           bp(true),
-			HasProjects:         bp(true),
-			HasWiki:             bp(true),
-			DeleteBranchOnMerge: bp(false),
+			DefaultBranch:             sp("main"),
+			HasIssues:                 bp(true),
+			HasProjects:               bp(true),
+			HasWiki:                   bp(true),
+			ShouldDeleteBranchOnMerge: bp(false),
 		},
 	}
 	want := "# nicerobot/admin — overrides from account defaults\n" +
@@ -167,7 +167,7 @@ func TestRenderQuotedStringsAndVisibility(t *testing.T) {
 			Homepage:      sp("https://nicerobot.github.io/year?i=2024"),
 			Visibility:    vp(repo.VisibilityPublic),
 			DefaultBranch: sp("master"),
-			Archived:      bp(true),
+			IsArchived:    bp(true),
 		},
 	}
 	want := "# nicerobot/year — overrides from org defaults\n" +
@@ -186,7 +186,7 @@ func TestRenderQuotedStringsAndVisibility(t *testing.T) {
 func TestComputeRenderProfileGolden(t *testing.T) {
 	r := matchingRepo("nicerobot")
 	r.Description = "About nicerobot"
-	r.Private = false
+	r.IsPrivate = false
 	r.DefaultBranch = "master"
 	f := overrides.Compute(r, defaults(), "nicerobot", repo.CommentSourceAccount)
 	want := "# nicerobot/nicerobot — overrides from account defaults\n" +
@@ -199,29 +199,30 @@ func TestComputeRenderProfileGolden(t *testing.T) {
 }
 
 func TestWriteSuccess(t *testing.T) {
-	var gotDir, gotName string
+	var gotDir overrides.ReposDir
+	var gotName overrides.OutFile
 	var gotData []byte
-	mkdir := func(p string) error { gotDir = p; return nil }
-	write := func(name string, data []byte) error { gotName = name; gotData = data; return nil }
+	mkdir := func(p overrides.ReposDir) error { gotDir = p; return nil }
+	write := func(name overrides.OutFile, data []byte) error { gotName = name; gotData = data; return nil }
 	f := overrides.File{Owner: "o", Name: "test", Source: repo.CommentSourceAccount}
 	out, err := overrides.Write(f, "settings/repos", mkdir, write)
 	require.NoError(t, err)
-	assert.Equal(t, "settings/repos", gotDir)
-	assert.Equal(t, "settings/repos/test.yml", gotName)
+	assert.Equal(t, overrides.ReposDir("settings/repos"), gotDir)
+	assert.Equal(t, overrides.OutFile("settings/repos/test.yml"), gotName)
 	assert.Equal(t, overrides.OutFile("settings/repos/test.yml"), out)
 	assert.Equal(t, f.Render(), string(gotData))
 }
 
 func TestWriteMkdirError(t *testing.T) {
-	mkdir := func(string) error { return errors.New("denied") }
-	write := func(string, []byte) error { return nil }
+	mkdir := func(overrides.ReposDir) error { return errors.New("denied") }
+	write := func(overrides.OutFile, []byte) error { return nil }
 	_, err := overrides.Write(overrides.File{Name: "x"}, "d", mkdir, write)
 	require.ErrorIs(t, err, constants.ErrWriteFile)
 }
 
 func TestWriteFileError(t *testing.T) {
-	mkdir := func(string) error { return nil }
-	write := func(string, []byte) error { return errors.New("disk full") }
+	mkdir := func(overrides.ReposDir) error { return nil }
+	write := func(overrides.OutFile, []byte) error { return errors.New("disk full") }
 	_, err := overrides.Write(overrides.File{Name: "x"}, "d", mkdir, write)
 	require.ErrorIs(t, err, constants.ErrWriteFile)
 }
@@ -245,10 +246,10 @@ func TestListExistingGlobError(t *testing.T) {
 func TestOSMkdirAndWriteFile(t *testing.T) {
 	dir := t.TempDir()
 	nested := filepath.Join(dir, "a", "b")
-	require.NoError(t, overrides.OSMkdir(nested))
+	require.NoError(t, overrides.OSMkdir(overrides.ReposDir(nested)))
 
 	file := filepath.Join(nested, "x.yml")
-	require.NoError(t, overrides.OSWriteFile(file, []byte("hello")))
+	require.NoError(t, overrides.OSWriteFile(overrides.OutFile(file), []byte("hello")))
 
 	data, err := os.ReadFile(file)
 	require.NoError(t, err)

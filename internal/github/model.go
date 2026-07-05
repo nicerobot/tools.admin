@@ -14,28 +14,28 @@ func (u User) AccountType() repo.AccountType { return repo.AccountType(u.Type) }
 // Repository is the subset of a GitHub repository object that snapshot diffs
 // against the org/account defaults.
 type Repository struct {
-	DefaultBranch       string `json:"default_branch"`
-	Description         string `json:"description"`
-	Homepage            string `json:"homepage"`
-	Name                string `json:"name"`
-	HasDiscussions      bool   `json:"has_discussions"`
-	HasIssues           bool   `json:"has_issues"`
-	HasProjects         bool   `json:"has_projects"`
-	HasWiki             bool   `json:"has_wiki"`
-	Private             bool   `json:"private"`
-	IsTemplate          bool   `json:"is_template"`
-	AllowSquashMerge    bool   `json:"allow_squash_merge"`
-	AllowMergeCommit    bool   `json:"allow_merge_commit"`
-	AllowRebaseMerge    bool   `json:"allow_rebase_merge"`
-	AllowAutoMerge      bool   `json:"allow_auto_merge"`
-	DeleteBranchOnMerge bool   `json:"delete_branch_on_merge"`
-	Archived            bool   `json:"archived"`
-	Fork                bool   `json:"fork"`
+	DefaultBranch             string `json:"default_branch"`
+	Description               string `json:"description"`
+	Homepage                  string `json:"homepage"`
+	Name                      string `json:"name"`
+	HasDiscussions            bool   `json:"has_discussions"`
+	HasIssues                 bool   `json:"has_issues"`
+	HasProjects               bool   `json:"has_projects"`
+	HasWiki                   bool   `json:"has_wiki"`
+	IsPrivate                 bool   `json:"private"`
+	IsTemplate                bool   `json:"is_template"`
+	CanSquashMerge            bool   `json:"allow_squash_merge"`
+	CanMergeCommit            bool   `json:"allow_merge_commit"`
+	CanRebaseMerge            bool   `json:"allow_rebase_merge"`
+	CanAutoMerge              bool   `json:"allow_auto_merge"`
+	ShouldDeleteBranchOnMerge bool   `json:"delete_branch_on_merge"`
+	IsArchived                bool   `json:"archived"`
+	IsFork                    bool   `json:"fork"`
 }
 
 // Visibility derives the public/private visibility from the private flag.
 func (r Repository) Visibility() repo.Visibility {
-	if r.Private {
+	if r.IsPrivate {
 		return repo.VisibilityPrivate
 	}
 	return repo.VisibilityPublic

@@ -8,9 +8,9 @@ import "github.com/nicerobot/tools.admin/internal/repo"
 // behavior. Every field reuses the implementation tier's named types, so no
 // domain-local types.go is needed.
 type Config struct {
-	Owner  repo.Owner
-	Repo   repo.Name
-	Days   repo.Days
-	Keep   repo.KeepCount
-	DryRun repo.DryRun
+	Owner    repo.Owner
+	Repo     repo.Name
+	Days     repo.Days
+	Keep     repo.KeepCount
+	IsDryRun repo.DryRun
 }

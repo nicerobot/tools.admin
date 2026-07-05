@@ -71,7 +71,7 @@ func Command() *cli.Command {
 			&cli.BoolFlag{
 				Name:        dryRunFlag,
 				Usage:       "Print what would be deleted without deleting",
-				Destination: (*bool)(&cfg.DryRun),
+				Destination: (*bool)(&cfg.IsDryRun),
 			},
 		},
 	}

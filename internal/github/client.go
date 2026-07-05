@@ -37,7 +37,7 @@ const (
 // GITHUB_API_URL (falling back to DefaultBaseURL when unset), and the token from
 // GH_TOKEN — all read through the injected env lookup.
 func NewFromEnv(env EnvLookup) (Client, error) {
-	return New(productionDoer(), env(apiURLEnv), env)
+	return New(productionDoer(), BaseURL(env(apiURLEnv)), env)
 }
 
 // productionDoer returns an *http.Client that does NOT follow redirects, so a
@@ -61,25 +61,47 @@ type Doer interface {
 // EnvLookup reads an environment variable; injected for testability.
 type EnvLookup func(key string) string
 
+// BaseURL is a GitHub REST API root URL.
+type BaseURL string
+
+// authToken is the bearer token authenticating every API request.
+type authToken string
+
+// collectionKey is the object field holding a page's item array; empty when the
+// page body is the array itself.
+type collectionKey string
+
+// queryParam is one half of a query-string key/value pair.
+type queryParam string
+
+// linkHeader is an HTTP Link header value carrying pagination relations.
+type linkHeader string
+
+// statusCode is an HTTP response status code.
+type statusCode int
+
+// requestURL is the path or URL a request targeted, reported in errors.
+type requestURL string
+
 // Client is the GitHub API client. It is an immutable value safe to copy.
 type Client struct {
 	doer    Doer
 	baseURL string
-	token   string
+	token   authToken
 }
 
 // New builds a Client, reading the token from GH_TOKEN via env. A missing token
 // is fatal (ErrNoAuth), matching the original constructor. An empty baseURL
 // resolves to DefaultBaseURL.
-func New(doer Doer, baseURL string, env EnvLookup) (Client, error) {
-	token := env(tokenEnv)
+func New(doer Doer, baseURL BaseURL, env EnvLookup) (Client, error) {
+	token := authToken(env(tokenEnv))
 	if token == "" {
 		return Client{}, constants.ErrNoAuth.With(nil)
 	}
 	if baseURL == "" {
 		baseURL = DefaultBaseURL
 	}
-	return Client{doer: doer, baseURL: baseURL, token: token}, nil
+	return Client{doer: doer, baseURL: string(baseURL), token: token}, nil
 }
 
 // GetAccountType returns the owner's account type (Organization, User, ...).
@@ -104,7 +126,7 @@ func (c Client) RepoExists(owner repo.Owner, name repo.Name) (bool, error) {
 		return false, nil
 	}
 	if !is2xx(resp.status) {
-		return false, statusErr(resp.status, path)
+		return false, statusErr(resp.status, requestURL(path))
 	}
 	return true, nil
 }
@@ -167,13 +189,16 @@ func (c Client) authenticatedLogin() (string, error) {
 	if !is2xx(resp.status) {
 		return "", nil
 	}
-	var u struct {
-		Login string `json:"login"`
-	}
+	var u loginProbe
 	if err := json.Unmarshal(resp.body, &u); err != nil {
 		return "", decodeErr(err)
 	}
 	return u.Login, nil
+}
+
+// loginProbe decodes just the login field of a GitHub user object.
+type loginProbe struct {
+	Login string `json:"login"`
 }
 
 // ListWorkflowRuns lists completed runs, optionally filtered to those created
@@ -199,7 +224,7 @@ func (c Client) DeleteWorkflowRun(owner repo.Owner, name repo.Name, id repo.RunI
 		return err
 	}
 	if !is2xx(resp.status) {
-		return statusErr(resp.status, path)
+		return statusErr(resp.status, requestURL(path))
 	}
 	return nil
 }
@@ -207,7 +232,7 @@ func (c Client) DeleteWorkflowRun(owner repo.Owner, name repo.Name, id repo.RunI
 // paginate walks Link rel="next" pages, collecting raw items from each. When
 // itemsKey is non-empty the page body is an object whose itemsKey field is the
 // array; otherwise the body is the array itself.
-func (c Client) paginate(path string, query url.Values, itemsKey string) ([]json.RawMessage, error) {
+func (c Client) paginate(path string, query url.Values, itemsKey collectionKey) ([]json.RawMessage, error) {
 	var out []json.RawMessage
 	next := c.baseURL + path
 	for next != "" {
@@ -222,19 +247,19 @@ func (c Client) paginate(path string, query url.Values, itemsKey string) ([]json
 	return out, nil
 }
 
-func (c Client) page(rawurl string, query url.Values, itemsKey string) ([]json.RawMessage, string, error) {
+func (c Client) page(rawurl string, query url.Values, itemsKey collectionKey) ([]json.RawMessage, string, error) {
 	resp, err := c.do(http.MethodGet, rawurl, query)
 	if err != nil {
 		return nil, "", err
 	}
 	if !is2xx(resp.status) {
-		return nil, "", statusErr(resp.status, rawurl)
+		return nil, "", statusErr(resp.status, requestURL(rawurl))
 	}
 	items, err := extractItems(resp.body, itemsKey)
 	if err != nil {
 		return nil, "", err
 	}
-	return items, nextLink(resp.header.Get("Link")), nil
+	return items, nextLink(linkHeader(resp.header.Get("Link"))), nil
 }
 
 func (c Client) getJSON(path string, v any) error {
@@ -243,7 +268,7 @@ func (c Client) getJSON(path string, v any) error {
 		return err
 	}
 	if !is2xx(resp.status) {
-		return statusErr(resp.status, path)
+		return statusErr(resp.status, requestURL(path))
 	}
 	if err := json.Unmarshal(resp.body, v); err != nil {
 		return decodeErr(err)
@@ -258,7 +283,7 @@ func (c Client) getJSON(path string, v any) error {
 type response struct {
 	header http.Header
 	body   []byte
-	status int
+	status statusCode
 }
 
 func (c Client) do(method, rawurl string, query url.Values) (response, error) {
@@ -280,16 +305,16 @@ func (c Client) do(method, rawurl string, query url.Values) (response, error) {
 	if err != nil {
 		return response{}, constants.ErrHTTPStatus.With(err, "url", full)
 	}
-	return response{status: resp.StatusCode, header: resp.Header, body: body}, nil
+	return response{status: statusCode(resp.StatusCode), header: resp.Header, body: body}, nil
 }
 
-func setHeaders(req *http.Request, token string) {
-	req.Header.Set("Authorization", "Bearer "+token)
+func setHeaders(req *http.Request, token authToken) {
+	req.Header.Set("Authorization", "Bearer "+string(token))
 	req.Header.Set("Accept", acceptHeader)
 	req.Header.Set("X-GitHub-Api-Version", apiVersion)
 }
 
-func extractItems(body []byte, itemsKey string) ([]json.RawMessage, error) {
+func extractItems(body []byte, itemsKey collectionKey) ([]json.RawMessage, error) {
 	if itemsKey == "" {
 		return unmarshalArray(body)
 	}
@@ -297,7 +322,7 @@ func extractItems(body []byte, itemsKey string) ([]json.RawMessage, error) {
 	if err := json.Unmarshal(body, &obj); err != nil {
 		return nil, decodeErr(err)
 	}
-	return unmarshalArray(obj[itemsKey])
+	return unmarshalArray(obj[string(itemsKey)])
 }
 
 func unmarshalArray(body []byte) ([]json.RawMessage, error) {
@@ -308,14 +333,15 @@ func unmarshalArray(body []byte) ([]json.RawMessage, error) {
 	return arr, nil
 }
 
+// ownerProbe decodes just the owner login of a GitHub repository object.
+type ownerProbe struct {
+	Owner loginProbe `json:"owner"`
+}
+
 func filterByOwner(raw []json.RawMessage, owner repo.Owner) []json.RawMessage {
 	out := make([]json.RawMessage, 0, len(raw))
 	for _, r := range raw {
-		var probe struct {
-			Owner struct {
-				Login string `json:"login"`
-			} `json:"owner"`
-		}
+		var probe ownerProbe
 		if json.Unmarshal(r, &probe) == nil && probe.Owner.Login == string(owner) {
 			out = append(out, r)
 		}
@@ -343,26 +369,26 @@ func runParams(before repo.CreatedBefore) url.Values {
 	return v
 }
 
-func params(pairs ...string) url.Values {
+func params(pairs ...queryParam) url.Values {
 	v := url.Values{}
 	v.Set("per_page", perPage)
 	for i := 0; i+1 < len(pairs); i += 2 {
-		v.Set(pairs[i], pairs[i+1])
+		v.Set(string(pairs[i]), string(pairs[i+1]))
 	}
 	return v
 }
 
-func nextLink(header string) string {
-	m := linkNextRe.FindStringSubmatch(header)
+func nextLink(header linkHeader) string {
+	m := linkNextRe.FindStringSubmatch(string(header))
 	if m == nil {
 		return ""
 	}
 	return m[1]
 }
 
-func is2xx(code int) bool { return code >= 200 && code < 300 }
+func is2xx(code statusCode) bool { return code >= 200 && code < 300 }
 
-func statusErr(code int, where string) error {
+func statusErr(code statusCode, where requestURL) error {
 	return constants.ErrHTTPStatus.With(nil, "status", code, "url", where)
 }
 

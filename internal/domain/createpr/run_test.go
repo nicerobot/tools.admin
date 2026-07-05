@@ -77,7 +77,7 @@ func TestFullFlowWithChanges(t *testing.T) {
 	res, err := runWith(t, g, "settings-sync/snapshot", "main")
 	require.NoError(t, err)
 	assert.Equal(t, Result{
-		Branch: "settings-sync/snapshot", Changed: true, Committed: true, Pushed: true, PRCreated: true,
+		Branch: "settings-sync/snapshot", HasChanges: true, IsCommitted: true, IsPushed: true, IsPRCreated: true,
 	}, res)
 	assert.Equal(t, gitcmd.StagePath(".github/repos"), g.stagePath)
 	assert.Equal(t, repo.Branch("settings-sync/snapshot"), g.pushBranch)
@@ -102,8 +102,8 @@ func TestExistingPRSkipsCreation(t *testing.T) {
 	g := &fakeGit{staged: true, prExists: true}
 	res, err := runWith(t, g, "settings-sync/snapshot", "main")
 	require.NoError(t, err)
-	assert.True(t, res.PRAlreadyOpen)
-	assert.False(t, res.PRCreated)
+	assert.True(t, res.IsPRAlreadyOpen)
+	assert.False(t, res.IsPRCreated)
 	assert.Nil(t, g.prArgs)
 }
 

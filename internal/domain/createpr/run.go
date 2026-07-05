@@ -16,15 +16,15 @@ const (
 )
 
 // Result is the outcome of the create-pr command: the branch operated on, and
-// what was done. When nothing is staged, Changed is false and every subsequent
-// step is false.
+// what was done. When nothing is staged, HasChanges is false and every
+// subsequent step is false.
 type Result struct {
-	Branch        string `json:"branch"`
-	Changed       bool   `json:"changed"`
-	Committed     bool   `json:"committed"`
-	Pushed        bool   `json:"pushed"`
-	PRCreated     bool   `json:"pr_created"`
-	PRAlreadyOpen bool   `json:"pr_already_open"`
+	Branch          string `json:"branch"`
+	HasChanges      bool   `json:"changed"`
+	IsCommitted     bool   `json:"committed"`
+	IsPushed        bool   `json:"pushed"`
+	IsPRCreated     bool   `json:"pr_created"`
+	IsPRAlreadyOpen bool   `json:"pr_already_open"`
 }
 
 // gitService is the git/gh surface create-pr needs.
@@ -95,16 +95,16 @@ func commitAndPR(d dependencies, logger *slog.Logger, cfg Config) (Result, error
 	if err != nil {
 		return Result{}, err
 	}
-	res := Result{Branch: string(cfg.Branch), Changed: true, Committed: true, Pushed: true}
+	res := Result{Branch: string(cfg.Branch), HasChanges: true, IsCommitted: true, IsPushed: true}
 	if exists {
-		res.PRAlreadyOpen = true
+		res.IsPRAlreadyOpen = true
 		logger.Info("PR already open.", "branch", cfg.Branch)
 		return res, nil
 	}
 	if err := d.git.CreatePR(prTitle, prBody, cfg.Branch, cfg.Base); err != nil {
 		return Result{}, err
 	}
-	res.PRCreated = true
+	res.IsPRCreated = true
 	logger.Info("PR created.", "branch", cfg.Branch, "base", cfg.Base)
 	return res, nil
 }

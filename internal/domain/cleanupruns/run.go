@@ -30,7 +30,7 @@ type Result struct {
 	ReposScanned int          `json:"repos_scanned"`
 	Deleted      int          `json:"deleted"`
 	Kept         int          `json:"kept"`
-	DryRun       bool         `json:"dry_run"`
+	IsDryRun     bool         `json:"dry_run"`
 }
 
 // githubAPI is the GitHub surface cleanup-runs needs.
@@ -82,13 +82,13 @@ func run(d dependencies, logger *slog.Logger, cfg Config) (Result, error) {
 		return Result{}, err
 	}
 	cutoff := cutoffDate(d.now, cfg.Days)
-	repos, err := pruneRepos(d, owner, names, cutoff, cfg.Keep, cfg.DryRun)
+	repos, err := pruneRepos(d, owner, names, cutoff, cfg.Keep, cfg.IsDryRun)
 	if err != nil {
 		return Result{}, err
 	}
-	result := summarize(names, repos, cfg.DryRun)
+	result := summarize(names, repos, cfg.IsDryRun)
 	logger.Info("Cleanup complete.",
-		"repos", result.ReposScanned, "deleted", result.Deleted, "kept", result.Kept, "dry_run", bool(cfg.DryRun))
+		"repos", result.ReposScanned, "deleted", result.Deleted, "kept", result.Kept, "dry_run", bool(cfg.IsDryRun))
 	return result, nil
 }
 
@@ -129,11 +129,11 @@ func pruneRepos(
 	names []repo.Name,
 	cutoff repo.CreatedBefore,
 	keep repo.KeepCount,
-	dry repo.DryRun,
+	isDryRun repo.DryRun,
 ) ([]RepoResult, error) {
 	results := make([]RepoResult, 0)
 	for _, name := range names {
-		r, ok, err := pruneRepo(d, owner, name, cutoff, keep, dry)
+		r, ok, err := pruneRepo(d, owner, name, cutoff, keep, isDryRun)
 		if err != nil {
 			return nil, err
 		}
@@ -150,7 +150,7 @@ func pruneRepo(
 	name repo.Name,
 	cutoff repo.CreatedBefore,
 	keep repo.KeepCount,
-	dry repo.DryRun,
+	isDryRun repo.DryRun,
 ) (RepoResult, bool, error) {
 	runs, err := d.github.ListWorkflowRuns(owner, name, cutoff)
 	if err != nil {
@@ -160,7 +160,7 @@ func pruneRepo(
 	if len(toDelete) == 0 {
 		return RepoResult{}, false, nil
 	}
-	if err := deleteRuns(d, owner, name, toDelete, dry); err != nil {
+	if err := deleteRuns(d, owner, name, toDelete, isDryRun); err != nil {
 		return RepoResult{}, false, err
 	}
 	return RepoResult{Name: string(name), Deleted: len(toDelete), Kept: kept}, true, nil
@@ -197,8 +197,14 @@ func sortNewestFirst(runs []github.WorkflowRun) {
 	sort.SliceStable(runs, func(i, j int) bool { return runs[i].CreatedAt > runs[j].CreatedAt })
 }
 
-func deleteRuns(d dependencies, owner repo.Owner, name repo.Name, runs []github.WorkflowRun, dry repo.DryRun) error {
-	if bool(dry) {
+func deleteRuns(
+	d dependencies,
+	owner repo.Owner,
+	name repo.Name,
+	runs []github.WorkflowRun,
+	isDryRun repo.DryRun,
+) error {
+	if bool(isDryRun) {
 		return nil
 	}
 	for _, r := range runs {
@@ -209,14 +215,14 @@ func deleteRuns(d dependencies, owner repo.Owner, name repo.Name, runs []github.
 	return nil
 }
 
-func summarize(names []repo.Name, repos []RepoResult, dry repo.DryRun) Result {
+func summarize(names []repo.Name, repos []RepoResult, isDryRun repo.DryRun) Result {
 	deleted, kept := 0, 0
 	for _, r := range repos {
 		deleted += r.Deleted
 		kept += r.Kept
 	}
 	return Result{
-		DryRun:       bool(dry),
+		IsDryRun:     bool(isDryRun),
 		ReposScanned: len(names),
 		Deleted:      deleted,
 		Kept:         kept,

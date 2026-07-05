@@ -118,10 +118,10 @@ func TestDryRunDoesNotDelete(t *testing.T) {
 	gh := &fakeGH{runs: map[string][]github.WorkflowRun{
 		"repo1": {mkRun(1, 1, "2025-01-01T00:00:00Z"), mkRun(2, 1, "2025-01-02T00:00:00Z")},
 	}}
-	res, err := runCleanup(t, gh, nil, Config{Owner: "nicerobot", Repo: "repo1", Days: 30, Keep: 0, DryRun: true})
+	res, err := runCleanup(t, gh, nil, Config{Owner: "nicerobot", Repo: "repo1", Days: 30, Keep: 0, IsDryRun: true})
 	require.NoError(t, err)
 	assert.Empty(t, gh.deletes)
-	assert.True(t, res.DryRun)
+	assert.True(t, res.IsDryRun)
 	assert.Equal(t, 2, res.Deleted)
 }
 

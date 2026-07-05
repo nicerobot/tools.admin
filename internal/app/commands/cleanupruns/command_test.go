@@ -34,7 +34,7 @@ func TestCleanupRunsCommand(t *testing.T) {
 				"--owner", "nicerobot", "--repo", "widget",
 				"--days", "7", "--keep", "2", "--dry-run",
 			},
-			wantCfg:      domain.Config{Owner: "nicerobot", Repo: "widget", Days: 7, Keep: 2, DryRun: true},
+			wantCfg:      domain.Config{Owner: "nicerobot", Repo: "widget", Days: 7, Keep: 2, IsDryRun: true},
 			wantContains: `"dry_run": true`,
 		},
 	}
@@ -49,7 +49,7 @@ func TestCleanupRunsCommand(t *testing.T) {
 			var gotCfg domain.Config
 			runAction = func(_ context.Context, _ *slog.Logger, c domain.Config, _ ...string) (domain.Result, error) {
 				gotCfg = c
-				return domain.Result{DryRun: bool(c.DryRun)}, nil
+				return domain.Result{IsDryRun: bool(c.IsDryRun)}, nil
 			}
 
 			var stdout bytes.Buffer

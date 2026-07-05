@@ -27,18 +27,18 @@ type ReadFileFunc func(name string) ([]byte, error)
 // live repo is diffed against. The defaults seeded by Defaults() are retained
 // for any key the file omits.
 type RepositoryDefaults struct {
-	DefaultBranch       string          `yaml:"default_branch"`
-	Visibility          repo.Visibility `yaml:"visibility"`
-	HasIssues           bool            `yaml:"has_issues"`
-	HasProjects         bool            `yaml:"has_projects"`
-	HasWiki             bool            `yaml:"has_wiki"`
-	HasDiscussions      bool            `yaml:"has_discussions"`
-	IsTemplate          bool            `yaml:"is_template"`
-	AllowSquashMerge    bool            `yaml:"allow_squash_merge"`
-	AllowMergeCommit    bool            `yaml:"allow_merge_commit"`
-	AllowRebaseMerge    bool            `yaml:"allow_rebase_merge"`
-	AllowAutoMerge      bool            `yaml:"allow_auto_merge"`
-	DeleteBranchOnMerge bool            `yaml:"delete_branch_on_merge"`
+	DefaultBranch             string          `yaml:"default_branch"`
+	Visibility                repo.Visibility `yaml:"visibility"`
+	HasIssues                 bool            `yaml:"has_issues"`
+	HasProjects               bool            `yaml:"has_projects"`
+	HasWiki                   bool            `yaml:"has_wiki"`
+	HasDiscussions            bool            `yaml:"has_discussions"`
+	IsTemplate                bool            `yaml:"is_template"`
+	CanSquashMerge            bool            `yaml:"allow_squash_merge"`
+	CanMergeCommit            bool            `yaml:"allow_merge_commit"`
+	CanRebaseMerge            bool            `yaml:"allow_rebase_merge"`
+	CanAutoMerge              bool            `yaml:"allow_auto_merge"`
+	ShouldDeleteBranchOnMerge bool            `yaml:"delete_branch_on_merge"`
 }
 
 // OrgSettings is the decoded settings.yml; only repository defaults are used.
@@ -51,12 +51,12 @@ type OrgSettings struct {
 func Defaults() OrgSettings {
 	return OrgSettings{
 		Repository: RepositoryDefaults{
-			DefaultBranch:       "main",
-			Visibility:          repo.VisibilityPrivate,
-			AllowSquashMerge:    true,
-			AllowMergeCommit:    true,
-			AllowRebaseMerge:    true,
-			DeleteBranchOnMerge: true,
+			DefaultBranch:             "main",
+			Visibility:                repo.VisibilityPrivate,
+			CanSquashMerge:            true,
+			CanMergeCommit:            true,
+			CanRebaseMerge:            true,
+			ShouldDeleteBranchOnMerge: true,
 		},
 	}
 }
@@ -68,7 +68,7 @@ func Load(read ReadFileFunc, path repo.SettingsPath) (OrgSettings, error) {
 	file := filepath.Join(string(path), settingsFile)
 	data, err := read(file)
 	if err != nil {
-		return OrgSettings{}, notFound(err, file)
+		return OrgSettings{}, notFound(err, settingsFilePath(file))
 	}
 	out := Defaults()
 	if err := yaml.Unmarshal(data, &out); err != nil {
@@ -77,9 +77,12 @@ func Load(read ReadFileFunc, path repo.SettingsPath) (OrgSettings, error) {
 	return out, nil
 }
 
+// settingsFilePath is the full path of the settings.yml file being loaded.
+type settingsFilePath string
+
 // notFound classifies a read error as the settings-not-found sentinel, keeping
 // the original "fatal when missing" contract.
-func notFound(err error, file string) error {
+func notFound(err error, file settingsFilePath) error {
 	if errors.Is(err, fs.ErrNotExist) {
 		return constants.ErrSettingsNotFound.With(nil, "file", file)
 	}
