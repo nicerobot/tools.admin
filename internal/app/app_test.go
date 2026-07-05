@@ -137,11 +137,10 @@ func TestNewLogger(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			want, must := assert.New(t), require.New(t)
+			want := assert.New(t)
 
 			var buf bytes.Buffer
 			logger := NewLogger(&buf, tt.cfg)
-			must.NotNil(logger)
 
 			logger.Info("hello")
 			want.Contains(buf.String(), tt.wantContains)

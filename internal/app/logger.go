@@ -39,10 +39,11 @@ func parseLevel(level LogLevel) slog.Level {
 }
 
 // NewLogger builds a logger from cfg, writing to w. This is the single place
-// that turns logging configuration into a slog.Logger.
-func NewLogger(w io.Writer, cfg LoggerConfig) *slog.Logger {
+// that turns logging configuration into a slog.Logger. It returns a value —
+// slog.Logger is a small, copyable handle around its handler.
+func NewLogger(w io.Writer, cfg LoggerConfig) slog.Logger {
 	opts := &slog.HandlerOptions{Level: parseLevel(cfg.LogLevel)}
-	return slog.New(handlerTypeFor(cfg.LogFormat).handler(w, opts))
+	return *slog.New(handlerTypeFor(cfg.LogFormat).handler(w, opts))
 }
 
 // GetLogger retrieves the configured logger from command metadata, falling back

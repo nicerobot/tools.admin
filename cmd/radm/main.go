@@ -46,7 +46,8 @@ var (
 // It is invoked from the root Before hook, after flag parsing has populated
 // loggerConfig, so --log-level and --log-format take effect.
 func productionLogger(_ *cli.Command) *slog.Logger {
-	return app.NewLogger(os.Stderr, loggerConfig)
+	logger := app.NewLogger(os.Stderr, loggerConfig)
+	return &logger
 }
 
 // version is the application version.
