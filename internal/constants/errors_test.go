@@ -2,9 +2,9 @@ package constants
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 
+	errs "github.com/gomatic/go-error"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +20,7 @@ func TestError_With(t *testing.T) {
 	tests := []struct {
 		err         error
 		name        string
-		sentinel    Error
+		sentinel    errs.Const
 		wantMessage string
 		args        []any
 		wantIs      []error
@@ -70,10 +70,4 @@ func TestError_With(t *testing.T) {
 			want.Equal(tt.wantMessage, err.Error())
 		})
 	}
-}
-
-func TestError_ImplementsError(t *testing.T) {
-	t.Parallel()
-	var err error = Error("boom")
-	assert.New(t).EqualError(fmt.Errorf("%w", err), "boom")
 }
