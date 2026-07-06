@@ -1,8 +1,6 @@
 # Admin Tools — Capabilities Specification
 
-**Created**: 2026-02-15
-**Updated**: 2026-02-15
-**Status**: Active
+**Created**: 2026-02-15 **Updated**: 2026-02-15 **Status**: Active
 
 ## User Scenarios & Testing
 
@@ -92,7 +90,7 @@ An org admin runs the cleanup-runs command to delete old GitHub Actions workflow
 ## Functional Requirements
 
 | ID | Name | Description | Acceptance |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | FR-001 | Fetch all repos | Fetch all repositories for a given GitHub user or org via the API | All repos returned including paginated results |
 | FR-002 | User/org detection | Distinguish user accounts from orgs, use correct API endpoint | `type=owner` for users, `type=all` for orgs |
 | FR-003 | Pagination | Handle GitHub API pagination via Link headers | All pages followed until no `rel="next"` |
@@ -121,7 +119,7 @@ An org admin runs the cleanup-runs command to delete old GitHub Actions workflow
 ## Success Criteria
 
 | ID | Criterion |
-|---|---|
+| --- | --- |
 | SC-001 | All 159+ unit tests pass |
 | SC-002 | `mypy --strict` passes with zero errors |
 | SC-003 | `ruff check` passes with zero violations |

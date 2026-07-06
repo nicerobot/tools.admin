@@ -11,6 +11,7 @@ Replace the Python `admin_tools` package (the `tools.admin` console CLI: `snapsh
 ## Behavioral contract (must be preserved exactly)
 
 ### `snapshot --owner <o> --settings-path <.github>`
+
 - Load `<settings-path>/settings.yml` → org defaults (`repository:` block); missing file is a fatal error.
 - Resolve account type via `GET /users/{owner}` → `Organization` ⇒ comment source `org`, else `account`.
 - List repos: org ⇒ `/orgs/{o}/repos?type=all`; else if authenticated login == owner ⇒ `/user/repos?affiliation=owner`; else if App token ⇒ `/installation/repositories` filtered by owner; else `/users/{o}/repos?type=owner`. All paginated via `Link: rel="next"`.
@@ -19,16 +20,19 @@ Replace the Python `admin_tools` package (the `tools.admin` console CLI: `snapsh
 - Then write `repos/<name>.yml` for every live repo and delete confirmed-gone files.
 
 ### `create-pr --settings-path <.github> --branch <settings-sync/snapshot> --base <main>`
+
 - `git config` bot identity (`github-actions[bot]` / `41898282+github-actions[bot]@users.noreply.github.com`), `git checkout -B <branch>`, `git add --all <settings-path>/repos`.
 - If nothing staged (`git diff --cached --quiet`) ⇒ print "No changes to commit." and return.
 - Else commit `chore: snapshot live repo settings`, `git push --force origin <branch>`; if no open PR for head (`gh pr list`) ⇒ `gh pr create` with fixed title/body.
 
 ### `cleanup-runs [--owner <o>] [--repo <r>] --days <30> --keep <5> [--dry-run]`
+
 - Resolve target: explicit `--owner` (with optional `--repo`); else parse `GITHUB_REPOSITORY=owner/name` (error if unset).
 - Cutoff = now − days (UTC, `YYYY-MM-DD`). Repos = `[repo]` or all under owner.
 - Per repo: list `status=completed&created=<cutoff` runs; group by `workflow_id`, sort newest-first, keep `keep`, delete the rest (or print `[dry-run]`). Print per-repo and summary lines (exact format preserved).
 
 ### Output format (`repos/<name>.yml`)
+
 Header comment `# {owner}/{name} — overrides from {source} defaults`, blank line, optional `_fork: true` + blank, then `repository: {}` or `repository:` with `  key: value` lines; `description`/`homepage` double-quoted, bools as `true`/`false`.
 
 ## Requirements (testable)
