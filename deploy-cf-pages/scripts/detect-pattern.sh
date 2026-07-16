@@ -19,23 +19,23 @@ exec 3>&1 4>&2
 IS_WORKER=false
 IS_HUGO=false
 
-[[ -f src/index.ts ]] && [[ -f tsconfig.json ]] && [[ -f package.json ]] && IS_WORKER=true || true
+if [[ -f src/index.ts ]]; then [[ -f tsconfig.json ]] && [[ -f package.json ]] && IS_WORKER=true; fi
 
 for HUGO_CONFIG in hugo.json hugo.toml hugo.yaml config.toml config.yaml; do
-  [[ -f "${HUGO_CONFIG}" ]] && {
+  if [[ -f "${HUGO_CONFIG}" ]]; then
     IS_HUGO=true
     break
-  } || true
+  fi
 done
 
-${IS_WORKER} && ${IS_HUGO} && {
+if ${IS_WORKER} && ${IS_HUGO}; then
   echo 'hugo-worker'
   exit 0
-} || true
-${IS_WORKER} && {
+fi
+if ${IS_WORKER}; then
   echo 'worker'
   exit 0
-} || true
+fi
 
 echo 'hugo'
 

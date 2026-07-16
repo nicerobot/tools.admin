@@ -20,6 +20,6 @@ cp wrangler.jsonc .deploy/
 cp package.json package-lock.json tsconfig.json .deploy/
 cp -r src .deploy/src
 cp -r public .deploy/public
-[[ -d migrations ]] && cp -r migrations .deploy/migrations || true
+if [[ -d migrations ]]; then cp -r migrations .deploy/migrations; fi
 
 exit 0

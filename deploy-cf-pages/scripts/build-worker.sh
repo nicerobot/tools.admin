@@ -14,13 +14,13 @@ set -o pipefail
 
 exec 3>&1 4>&2
 
-[[ -f Makefile ]] && grep -q '^minify:' Makefile && make minify || true
+if [[ -f Makefile ]]; then grep -q '^minify:' Makefile && make minify; fi
 
 mkdir -p .deploy
 cp wrangler.jsonc .deploy/
 cp package.json package-lock.json tsconfig.json .deploy/
 cp -r src .deploy/src
-[[ -d public ]] && cp -r public .deploy/public || true
-[[ -d migrations ]] && cp -r migrations .deploy/migrations || true
+if [[ -d public ]]; then cp -r public .deploy/public; fi
+if [[ -d migrations ]]; then cp -r migrations .deploy/migrations; fi
 
 exit 0

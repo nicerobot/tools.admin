@@ -17,7 +17,7 @@ mkdir -p .deploy
 
 # Copy generated asset directories
 for dir in logo favicon platform; do
-  [[ -d "${dir}" ]] && cp -r "${dir}" ".deploy/${dir}" || true
+  if [[ -d "${dir}" ]]; then cp -r "${dir}" ".deploy/${dir}"; fi
 done
 
 # Generate manifest.json listing every published file
