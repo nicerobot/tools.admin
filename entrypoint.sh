@@ -22,13 +22,13 @@ case "${command}" in
   cleanup-runs)
     # owner is optional: when omitted the tool auto-detects the current
     # repository from GITHUB_REPOSITORY, which GitHub injects into the run.
-    args=""
-    [ -n "${INPUT_OWNER:-}" ] && args="$args --owner ${INPUT_OWNER}"
-    [ -n "${INPUT_CLEANUP_REPO:-}" ] && args="$args --repo ${INPUT_CLEANUP_REPO}"
-    [ -n "${INPUT_CLEANUP_DAYS:-}" ] && args="$args --days ${INPUT_CLEANUP_DAYS}"
-    [ -n "${INPUT_CLEANUP_KEEP:-}" ] && args="$args --keep ${INPUT_CLEANUP_KEEP}"
-    [ "${INPUT_CLEANUP_DRY_RUN:-false}" = "true" ] && args="$args --dry-run"
-    exec radm cleanup-runs $args
+    set --
+    [ -n "${INPUT_OWNER:-}" ] && set -- "$@" --owner "${INPUT_OWNER}"
+    [ -n "${INPUT_CLEANUP_REPO:-}" ] && set -- "$@" --repo "${INPUT_CLEANUP_REPO}"
+    [ -n "${INPUT_CLEANUP_DAYS:-}" ] && set -- "$@" --days "${INPUT_CLEANUP_DAYS}"
+    [ -n "${INPUT_CLEANUP_KEEP:-}" ] && set -- "$@" --keep "${INPUT_CLEANUP_KEEP}"
+    [ "${INPUT_CLEANUP_DRY_RUN:-false}" = "true" ] && set -- "$@" --dry-run
+    exec radm cleanup-runs "$@"
     ;;
   *)
     echo "Unknown command: ${command}" >&2

@@ -30,20 +30,20 @@ done < <(find . -type f ! -name manifest.json -print0 | sort -z)
 
 {
   echo '{'
-  echo '  "generated": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",'
+  echo '  "generated": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'",'
   echo '  "files": ['
 
   for i in "${!FILES[@]}"; do
     # Strip leading ./
     filepath="${FILES[$i]#./}"
     comma=','
-    [[ $i -eq $(( ${#FILES[@]} - 1 )) ]] && comma=''
+    [[ $i -eq $((${#FILES[@]} - 1)) ]] && comma=''
     echo "    \"${filepath}\"${comma}"
   done
 
   echo '  ]'
   echo '}'
-} > manifest.json
+} >manifest.json
 
 echo "::notice::Staged ${#FILES[@]} files for gh-pages"
 

@@ -51,16 +51,16 @@ cf-api() {
     -H "Authorization: Bearer ${CF_READ_ONLY_API_TOKEN}" \
     -H 'Content-Type: application/json' \
     "${CF_API}${ENDPOINT}" \
-    </dev/null 2>/dev/null \
-  || echo '{"success":false,"result":[]}'
+    </dev/null 2>/dev/null ||
+    echo '{"success":false,"result":[]}'
 }
 
 pull-dns() {
   local RESPONSE
   RESPONSE="$(cf-api "/zones/${ZONE_ID}/dns_records?per_page=500")"
 
-  echo "${RESPONSE}" \
-    | jq --arg zone "${ZONE}" --arg zone_id "${ZONE_ID}" '{
+  echo "${RESPONSE}" |
+    jq --arg zone "${ZONE}" --arg zone_id "${ZONE_ID}" '{
         zone: $zone,
         zone_id: $zone_id,
         records: [
@@ -83,11 +83,11 @@ pull-dns() {
           + (if .priority != null then {priority: .priority} else {} end)
           + (if .comment != null and .comment != "" then {comment: .comment} else {} end)
         ]
-      }' \
-    | yq -P '.' > "${CF_DIR}/zone.yaml"
+      }' |
+    yq -P '.' >"${CF_DIR}/zone.yaml"
 
   local RECORD_COUNT
-  RECORD_COUNT="$(jq '.result | length' <<< "${RESPONSE}")"
+  RECORD_COUNT="$(jq '.result | length' <<<"${RESPONSE}")"
   printf >&3 '  zone.yaml: %s records\n' "${RECORD_COUNT}"
 }
 
@@ -96,8 +96,8 @@ pull-rules() {
   RULESETS_RESPONSE="$(cf-api "/zones/${ZONE_ID}/rulesets")"
 
   local CUSTOM_IDS
-  CUSTOM_IDS="$(echo "${RULESETS_RESPONSE}" \
-    | jq -r '.result[] | select(.kind == "zone") | .id')"
+  CUSTOM_IDS="$(echo "${RULESETS_RESPONSE}" |
+    jq -r '.result[] | select(.kind == "zone") | .id')"
 
   [[ -z "${CUSTOM_IDS}" ]] && {
     [[ -f "${CF_DIR}/rules.yaml" ]] && rm -f "${CF_DIR}/rules.yaml"
@@ -110,12 +110,12 @@ pull-rules() {
     [[ -z "${RULESET_ID}" ]] && continue
     local DETAIL
     DETAIL="$(cf-api "/zones/${ZONE_ID}/rulesets/${RULESET_ID}")"
-    ALL_DETAILS="$(echo "${ALL_DETAILS}" \
-      | jq --argjson detail "${DETAIL}" '. + [$detail.result]')"
-  done <<< "${CUSTOM_IDS}"
+    ALL_DETAILS="$(echo "${ALL_DETAILS}" |
+      jq --argjson detail "${DETAIL}" '. + [$detail.result]')"
+  done <<<"${CUSTOM_IDS}"
 
-  echo "${ALL_DETAILS}" \
-    | jq --arg zone "${ZONE}" --arg zone_id "${ZONE_ID}" '{
+  echo "${ALL_DETAILS}" |
+    jq --arg zone "${ZONE}" --arg zone_id "${ZONE_ID}" '{
         zone: $zone,
         zone_id: $zone_id,
         rulesets: [
@@ -139,11 +139,11 @@ pull-rules() {
               ]
             }
         ]
-      }' \
-    | yq -P '.' > "${CF_DIR}/rules.yaml"
+      }' |
+    yq -P '.' >"${CF_DIR}/rules.yaml"
 
   local RULE_COUNT
-  RULE_COUNT="$(jq '[.[].rules // [] | length] | add // 0' <<< "${ALL_DETAILS}")"
+  RULE_COUNT="$(jq '[.[].rules // [] | length] | add // 0' <<<"${ALL_DETAILS}")"
   printf >&3 '  rules.yaml: %s rules\n' "${RULE_COUNT}"
 }
 
@@ -195,8 +195,8 @@ pull-email() {
             }
         ]
       }
-    }' \
-    | yq -P '.' > "${CF_DIR}/email.yaml"
+    }' |
+    yq -P '.' >"${CF_DIR}/email.yaml"
 
   printf >&3 '  email.yaml: %s rules\n' "${RULE_COUNT}"
 }
