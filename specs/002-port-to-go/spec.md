@@ -33,7 +33,7 @@ Replace the Python `admin_tools` package (the `tools.admin` console CLI: `snapsh
 
 ### Output format (`repos/<name>.yml`)
 
-Header comment `# {owner}/{name} — overrides from {source} defaults`, blank line, optional `_fork: true` + blank, then `repository: {}` or `repository:` with `  key: value` lines; `description`/`homepage` double-quoted, bools as `true`/`false`.
+Header comment `# {owner}/{name} — overrides from {source} defaults`, blank line, optional `_fork: true` + blank, then `repository: {}` or `repository:` with `key: value` lines; `description`/`homepage` double-quoted, bools as `true`/`false`.
 
 ## Requirements (testable)
 

@@ -10,7 +10,7 @@ Consumer org admin repos invoke it as `uses: nicerobot/tools.admin@v1`.
 
 ## Directory Structure
 
-```
+```text
 tools.admin/
 ├── .github/workflows/ci.yml     # lint, typecheck, test, docker build+push
 ├── .specify/                     # Spec Kit artifacts
@@ -57,7 +57,7 @@ tools.admin/
 
 ## Layer Architecture
 
-```
+```text
 ┌─────────────────────────────┐
 │         cli.py              │  argparse → match/case dispatch
 ├─────────────────────────────┤
@@ -119,7 +119,7 @@ Thin subprocess wrappers for git and gh CLI operations. The `create-pr` command 
 
 ### Snapshot
 
-```
+```text
 settings.yml → OrgSettings → RepositoryDefaults
                                     ↓
 GitHub API → [GitHubRepository] → compute_overrides() → [RepoOverrideFile]
@@ -135,7 +135,7 @@ GitHub API → [GitHubRepository] → compute_overrides() → [RepoOverrideFile]
 
 ### Cleanup Runs
 
-```
+```text
 --repo flag → single repo name   OR   list_repos(owner) → [repo names]
                                             ↓
             for each repo: list_workflow_runs(created_before=cutoff)
@@ -149,7 +149,7 @@ GitHub API → [GitHubRepository] → compute_overrides() → [RepoOverrideFile]
 
 ### Create PR
 
-```
+```text
 .github/repos/ → git add → git diff --cached → git commit → git push → gh pr create
 ```
 
