@@ -9,9 +9,11 @@ import (
 
 const (
 	name        = `cleanup-runs`
-	usage       = `Delete old workflow runs.`
+	usage       = `DISABLED — delete old workflow runs.`
 	argUsage    = ``
-	description = `Delete old GitHub Actions workflow runs. For the target owner (or the current
+	description = `DISABLED: fleet maintenance is switched off, so this command refuses to run.
+
+Delete old GitHub Actions workflow runs. For the target owner (or the current
 repository from GITHUB_REPOSITORY when --owner is omitted) and repo (or every
 repo under the owner when --repo is omitted), this lists completed runs older
 than --days, groups them by workflow, keeps the newest --keep per workflow, and

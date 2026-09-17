@@ -13,9 +13,11 @@ import (
 
 const (
 	name        = `dependabot-sweep`
-	usage       = `Merge green, non-major Dependabot pull requests.`
+	usage       = `DISABLED — merge green, non-major Dependabot pull requests.`
 	argUsage    = ``
-	description = `Sweep every --owner for open Dependabot pull requests and merge the ones that
+	description = `DISABLED: fleet maintenance is switched off, so this command refuses to run.
+
+Sweep every --owner for open Dependabot pull requests and merge the ones that
 qualify: not a draft, every check run complete and passing, and no dependency
 crossing a major version boundary.
 

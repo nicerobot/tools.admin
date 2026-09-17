@@ -66,6 +66,9 @@ func osDeps() (dependencies, error) {
 // tier renders. It orchestrates the github package and holds no presentation
 // logic.
 func Run(_ context.Context, logger *slog.Logger, cfg Config, _ ...domain.Argument) (Result, error) {
+	if err := guard(); err != nil {
+		return Result{}, err
+	}
 	d, err := deps()
 	if err != nil {
 		return Result{}, err

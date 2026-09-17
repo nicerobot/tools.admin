@@ -57,6 +57,9 @@ func osDeps() dependencies {
 // Run executes the create-pr command, returning a structured Result the app tier
 // renders. It orchestrates the gitcmd package and holds no presentation logic.
 func Run(_ context.Context, logger *slog.Logger, cfg Config, _ ...domain.Argument) (Result, error) {
+	if err := guard(); err != nil {
+		return Result{}, err
+	}
 	return run(deps(), logger, cfg)
 }
 

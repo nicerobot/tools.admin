@@ -85,6 +85,9 @@ func osDeps() (dependencies, error) {
 
 // Run executes the sweep, returning a structured Result the app tier renders.
 func Run(_ context.Context, logger *slog.Logger, cfg Config, _ ...domain.Argument) (Result, error) {
+	if err := guard(); err != nil {
+		return Result{}, err
+	}
 	d, err := deps()
 	if err != nil {
 		return Result{}, err

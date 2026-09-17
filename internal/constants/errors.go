@@ -4,10 +4,16 @@ import errs "github.com/gomatic/go-error"
 
 // Keep these constants sorted alphabetically.
 const (
+	// ErrCleanupRunsDisabled means cleanup-runs refused to run: fleet maintenance is switched off.
+	ErrCleanupRunsDisabled errs.Const = "cleanup-runs is disabled: fleet maintenance is switched off"
 	// ErrCommand means an external git/gh command failed.
 	ErrCommand errs.Const = "command failed"
+	// ErrCreatePRDisabled means create-pr refused to run: fleet maintenance is switched off.
+	ErrCreatePRDisabled errs.Const = "create-pr is disabled: fleet maintenance is switched off"
 	// ErrDecodeResponse means a GitHub API response body failed to decode.
 	ErrDecodeResponse errs.Const = "failed to decode GitHub API response"
+	// ErrDependabotDisabled means the dependabot sweep refused to run: fleet maintenance is switched off.
+	ErrDependabotDisabled errs.Const = "dependabot sweep is disabled: fleet maintenance is switched off"
 	// ErrHTTPStatus means a GitHub API call returned an unexpected status.
 	ErrHTTPStatus errs.Const = "unexpected GitHub API status"
 	// ErrResponseTooLarge means a GitHub API response exceeded the in-memory ceiling.

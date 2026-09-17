@@ -9,9 +9,11 @@ import (
 
 const (
 	name        = `create-pr`
-	usage       = `Create a PR from a snapshot.`
+	usage       = `DISABLED — create a PR from a snapshot.`
 	argUsage    = ``
-	description = `Commit the snapshot under <settings-path>/repos onto a branch and open a pull
+	description = `DISABLED: fleet maintenance is switched off, so this command refuses to run.
+
+Commit the snapshot under <settings-path>/repos onto a branch and open a pull
 request into the base branch. The github-actions[bot] identity is configured,
 the branch is force-created, and the repos directory is staged; if nothing is
 staged the command is a no-op. Otherwise it commits, force-pushes, and opens a

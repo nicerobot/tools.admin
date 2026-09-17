@@ -22,9 +22,9 @@ const (
 
 Available Commands:
   snapshot       - Snapshot live repo settings into per-repo settings override files
-  create-pr      - Commit a snapshot onto a branch and open a pull request
-  cleanup-runs   - Delete old GitHub Actions workflow runs
-  dependabot-sweep - Merge green, non-major Dependabot pull requests
+  create-pr      - DISABLED (fleet maintenance is switched off)
+  cleanup-runs   - DISABLED (fleet maintenance is switched off)
+  dependabot-sweep - DISABLED (fleet maintenance is switched off)
 
 Each command renders a structured JSON result on stdout. Configuration comes from
 flags and the standard GitHub Actions environment (GH_TOKEN, GITHUB_API_URL,
